@@ -41,10 +41,14 @@
 * onDescriptorReadRequest (client wants to read data from descriptor)
 
 
-    val server = RxBleGatt.with(context)
+    val server = RxBleGattServer.with(context)
+    
     val service = RxBleService(UUID, SERVICE_TYPE_PRIMARY)
+    
     val characteristic = RxBleCharacteristic()
+    
     service.addCharacteristic(characteristic)
+    
     server.addService(service)
     
     server.start().subscribe({ 
@@ -57,16 +61,28 @@
         println("server crashed with $e")
     })
 
-    server.advertiser.setup(data, response, settings).start()
+    server.advertiser
+        .setup(data, response, settings)
+        .start()
     
     server.advertiser.observe() // keep an eye on the status
 
-    server.advertise(settings, data, response).subscribe({
-        - ACTIVE
-        - ERROR(ALREADY_ADVERTISING)
-        - INACTIVE
-    }, {
+    characteristic.observeWriteRequest() -> Observable<RxBleCharacteristicWriteRequest>
+        .flatMap { characteristicWriteRequest -> 
+            
+            server.respond(it.response(
+        }
     
-    })
-    
-    
+    RxBleCharacteristicWriteRequest {
+        characteristic: RxBleCharacteristic,
+        device: RxBluetoothDevice,
+        // etc... (requestId, RxBleDescriptor, preparedWrite, responseNeeded, offset, value)
+        
+        fun response(): RxBleResponse {
+            RxBleDevice,
+            requestId,
+            status,
+            offset,
+            value
+        }
+    }
