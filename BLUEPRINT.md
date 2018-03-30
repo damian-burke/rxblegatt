@@ -41,48 +41,50 @@
 * onDescriptorReadRequest (client wants to read data from descriptor)
 
 
-    val server = RxBleGattServer.with(context)
-    
-    val service = RxBleService(UUID, SERVICE_TYPE_PRIMARY)
-    
-    val characteristic = RxBleCharacteristic()
-    
-    service.addCharacteristic(characteristic)
-    
-    server.addService(service)
-    
-    server.start().subscribe({ 
-        - OPEN
-        - CONNECTED(1.22.10.2)
-        - DISCONNECTED(1.22.10.2)
-        - ERROR (random_error)
-        - CLOSED
-    }, { e -> 
-        println("server crashed with $e")
-    })
 
-    server.advertiser
-        .setup(data, response, settings)
-        .start()
-    
-    server.advertiser.observe() // keep an eye on the status
 
-    characteristic.observeWriteRequest() -> Observable<RxBleCharacteristicWriteRequest>
-        .flatMap { characteristicWriteRequest -> 
-            
-            server.respond(it.response(
-        }
-    
-    RxBleCharacteristicWriteRequest {
-        characteristic: RxBleCharacteristic,
-        device: RxBluetoothDevice,
-        // etc... (requestId, RxBleDescriptor, preparedWrite, responseNeeded, offset, value)
+        val server = RxBleGattServer.with(context)
         
-        fun response(): RxBleResponse {
-            RxBleDevice,
-            requestId,
-            status,
-            offset,
-            value
+        val service = RxBleService(UUID, SERVICE_TYPE_PRIMARY)
+        
+        val characteristic = RxBleCharacteristic()
+        
+        service.addCharacteristic(characteristic)
+        
+        server.addService(service)
+        
+        server.start().subscribe({ 
+            - OPEN
+            - CONNECTED(1.22.10.2)
+            - DISCONNECTED(1.22.10.2)
+            - ERROR (random_error)
+            - CLOSED
+        }, { e -> 
+            println("server crashed with $e")
+        })
+    
+        server.advertiser
+            .setup(data, response, settings)
+            .start()
+        
+        server.advertiser.observe() // keep an eye on the status
+    
+        characteristic.observeWriteRequest() -> Observable<RxBleCharacteristicWriteRequest>
+            .flatMap { characteristicWriteRequest -> 
+                
+                server.respond(it.response(
+            }
+        
+        RxBleCharacteristicWriteRequest {
+            characteristic: RxBleCharacteristic,
+            device: RxBluetoothDevice,
+            // etc... (requestId, RxBleDescriptor, preparedWrite, responseNeeded, offset, value)
+            
+            fun response(): RxBleResponse {
+                RxBleDevice,
+                requestId,
+                status,
+                offset,
+                value
+            }
         }
-    }
