@@ -8,6 +8,8 @@ import java.util.*
 interface RxBleService {
     val service: BluetoothGattService
 
+    val characteristicMap: HashMap<UUID, RxBleCharacteristic>
+
     fun removeCharacteristic(characteristic: RxBleCharacteristic)
 
     fun removeCharacteristic(uuid: UUID)

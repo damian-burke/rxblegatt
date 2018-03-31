@@ -2,8 +2,11 @@ package com.brainasaservice.rxblegatt.characteristic
 
 import android.bluetooth.BluetoothGattCharacteristic
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
+import com.brainasaservice.rxblegatt.descriptor.RxBleNotificationDescriptor
+import io.reactivex.internal.util.BackpressureHelper.add
 import java.security.InvalidParameterException
 import java.util.*
+import kotlin.collections.HashMap
 
 class RxBleCharacteristicImpl(
         override val uuid: UUID,
@@ -16,10 +19,28 @@ class RxBleCharacteristicImpl(
             permissions
     )
 
-    private val descriptors = mutableListOf<RxBleDescriptor>()
+    override val descriptorMap: HashMap<UUID, RxBleDescriptor> = hashMapOf()
+
+    override fun enableNotificationSubscription() {
+        val descriptor = RxBleNotificationDescriptor()
+        descriptorMap[descriptor.uuid] = descriptor
+    }
+
+    override fun hasNotificationSubscriptionEnabled() = descriptorMap.any {
+        it.value is RxBleNotificationDescriptor
+    }
+
+    /**
+     * TODO: only possible until descriptor has been added to characteristic
+     */
+    override fun disableNotificationSubscription() {
+        descriptorMap.filter { it.value is RxBleNotificationDescriptor }.onEach {
+            descriptorMap.remove(it.key)
+        }
+    }
 
     override fun addDescriptor(descriptor: RxBleDescriptor) {
-        descriptors.add(descriptor)
+        descriptorMap[descriptor.uuid] = descriptor
         characteristic.addDescriptor(descriptor.descriptor)
     }
 
@@ -27,7 +48,7 @@ class RxBleCharacteristicImpl(
      * TODO: only possible until descriptor has been added to characteristic
      */
     override fun removeDescriptor(descriptor: RxBleDescriptor) {
-        descriptors.remove(descriptor)
+        descriptorMap.remove(descriptor.uuid)
     }
 
     class Builder : RxBleCharacteristic.Builder {
@@ -39,24 +60,24 @@ class RxBleCharacteristicImpl(
 
         private val descriptors = mutableListOf<RxBleDescriptor>()
 
-        override fun setUuid(uuid: UUID): RxBleCharacteristic.Builder {
+        override fun setUuid(uuid: UUID): RxBleCharacteristic.Builder = this.apply {
             this.uuid = uuid
-            return this
         }
 
-        override fun setPermissions(permissions: Int): RxBleCharacteristic.Builder {
+        override fun setPermissions(permissions: Int): RxBleCharacteristic.Builder = this.apply {
             this.permissions = permissions
-            return this
         }
 
-        override fun setProperties(properties: Int): RxBleCharacteristic.Builder {
+        override fun setProperties(properties: Int): RxBleCharacteristic.Builder = this.apply {
             this.properties = properties
-            return this
         }
 
-        override fun addDescriptor(descriptor: RxBleDescriptor): RxBleCharacteristic.Builder {
+        override fun addDescriptor(descriptor: RxBleDescriptor): RxBleCharacteristic.Builder = this.apply {
             descriptors.add(descriptor)
-            return this
+        }
+
+        override fun enableNotificationSubscription(): RxBleCharacteristic.Builder = this.apply {
+            descriptors.add(RxBleNotificationDescriptor())
         }
 
         override fun build(): RxBleCharacteristic {

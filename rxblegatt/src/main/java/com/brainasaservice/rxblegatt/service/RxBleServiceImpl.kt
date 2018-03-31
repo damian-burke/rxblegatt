@@ -12,7 +12,7 @@ class RxBleServiceImpl(
 
     override val service: BluetoothGattService = BluetoothGattService(uuid, type.value)
 
-    private val characteristicMap: HashMap<UUID, RxBleCharacteristic> = hashMapOf()
+    override val characteristicMap: HashMap<UUID, RxBleCharacteristic> = hashMapOf()
 
     override fun addCharacteristic(
             uuid: UUID,

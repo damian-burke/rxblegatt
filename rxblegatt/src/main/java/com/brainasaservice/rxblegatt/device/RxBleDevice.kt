@@ -1,6 +1,7 @@
 package com.brainasaservice.rxblegatt.device
 
 import android.bluetooth.BluetoothDevice
+import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristic
 import io.reactivex.Observable
 
 interface RxBleDevice {
@@ -12,8 +13,14 @@ interface RxBleDevice {
 
     fun notificationSent()
 
+    fun notificationSubscriptionActive(characteristic: RxBleCharacteristic)
+
+    fun notificationSubscriptionInactive(characteristic: RxBleCharacteristic)
+
     sealed class Status {
         data class OnMtuChanged(val mtu: Int) : Status()
-        object OnNotificationSent: Status()
+        data class OnNotificationSubscriptionActive(val characteristic: RxBleCharacteristic) : Status()
+        data class OnNotificationSubscriptionInactive(val characteristic: RxBleCharacteristic) : Status()
+        object OnNotificationSent : Status()
     }
 }

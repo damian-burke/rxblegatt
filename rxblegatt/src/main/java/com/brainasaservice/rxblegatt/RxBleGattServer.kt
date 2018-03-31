@@ -1,16 +1,20 @@
 package com.brainasaservice.rxblegatt
 
 import android.bluetooth.*
+import android.content.ContentValues.TAG
 import android.content.Context
 import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiser
 import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiserImpl
+import com.brainasaservice.rxblegatt.descriptor.RxBleNotificationDescriptor
 import com.brainasaservice.rxblegatt.device.RxBleDevice
 import com.brainasaservice.rxblegatt.device.RxBleDeviceImpl
+import com.brainasaservice.rxblegatt.service.RxBleService
 import com.brainasaservice.rxblegatt.util.Logger
 import com.jakewharton.rxrelay2.BehaviorRelay
 import com.jakewharton.rxrelay2.PublishRelay
 import io.reactivex.Completable
 import io.reactivex.Observable
+import java.util.*
 import kotlin.collections.HashMap
 
 class RxBleGattServer(private val context: Context) {
@@ -21,6 +25,8 @@ class RxBleGattServer(private val context: Context) {
     private var server: BluetoothGattServer? = null
 
     private val deviceMap: HashMap<String, RxBleDevice> = hashMapOf()
+
+    private val serviceMap: HashMap<UUID, RxBleService> = hashMapOf()
 
     private val statusRelay: PublishRelay<RxBleGattServerStatus> = PublishRelay.create()
 
@@ -64,6 +70,37 @@ class RxBleGattServer(private val context: Context) {
             /**
              * TODO: update RxBleDescriptor
              */
+            descriptor?.let {
+                val serviceUuid = it.characteristic.service.uuid
+                val charUuid = it.characteristic.uuid
+                val descUuid = it.uuid
+
+                val rxDescriptor = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)?.descriptorMap?.get(descUuid)
+                val rxCharacteristic = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)
+                val rxDevice = deviceMap[device?.address]
+
+                if (rxDevice != null && rxCharacteristic != null && rxDescriptor != null) {
+                    /**
+                     * We'll only proceed, if we've identified
+                     * - device
+                     * - characteristic
+                     * - descriptor
+                     */
+                    if (rxDescriptor is RxBleNotificationDescriptor) {
+                        /**
+                         * If the current descriptor is a Notification descriptor, set subscription to active
+                         * TODO: update the descriptor / characteristic with subscription?
+                         */
+                        rxDevice.notificationSubscriptionActive(rxCharacteristic)
+                    } else {
+                        /**
+                         * Otherwise, forward the write request to the RxBleCharacteristic
+                         * TODO: update device with write request?
+                         */
+                        rxCharacteristic.onDescriptorWriteRequest(rxDevice, requestId, rxDescriptor, preparedWrite, responseNeeded, offset, value)
+                    }
+                }
+            }
         }
 
         override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
