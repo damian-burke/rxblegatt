@@ -1,3 +1,7 @@
 package com.brainasaservice.rxblegatt.descriptor
 
-interface RxBleDescriptor
+import android.bluetooth.BluetoothGattDescriptor
+
+interface RxBleDescriptor {
+    val descriptor: BluetoothGattDescriptor
+}

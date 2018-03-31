@@ -2,35 +2,113 @@ package com.brainasaservice.rxblegatt
 
 import android.bluetooth.*
 import android.content.Context
+import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiser
+import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiserImpl
+import com.brainasaservice.rxblegatt.device.RxBleDevice
+import com.brainasaservice.rxblegatt.device.RxBleDeviceImpl
 import com.brainasaservice.rxblegatt.util.Logger
+import com.jakewharton.rxrelay2.BehaviorRelay
+import com.jakewharton.rxrelay2.PublishRelay
 import io.reactivex.Completable
+import io.reactivex.Observable
+import kotlin.collections.HashMap
 
-class RxBleGattServer(val context: Context) : BluetoothGattServerCallback() {
+class RxBleGattServer(private val context: Context) {
+    val advertiser: RxBleAdvertiser by lazy {
+        RxBleAdvertiserImpl(bluetoothAdapter)
+    }
+
     private var server: BluetoothGattServer? = null
 
-    private var bluetoothManager: BluetoothManager? = null
+    private val deviceMap: HashMap<String, RxBleDevice> = hashMapOf()
 
-    private var bluetoothAdapter: BluetoothAdapter? = null
+    private val statusRelay: PublishRelay<RxBleGattServerStatus> = PublishRelay.create()
+
+    private val deviceListRelay: BehaviorRelay<List<RxBleDevice>> = BehaviorRelay.create()
+
+    private val bluetoothManager: BluetoothManager by lazy {
+        context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+    }
+
+    private val bluetoothAdapter: BluetoothAdapter by lazy {
+        bluetoothManager.adapter
+    }
+
+    private val serverCallback: BluetoothGattServerCallback = object : BluetoothGattServerCallback() {
+        override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
+            super.onConnectionStateChange(device, status, newState)
+            device?.let { dev ->
+                when (newState) {
+                    BluetoothGattServer.STATE_CONNECTED -> handleDeviceConnected(dev)
+                    BluetoothGattServer.STATE_DISCONNECTED -> handleDeviceDisconnected(dev)
+                }
+            }
+        }
+
+        override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
+            super.onServiceAdded(status, service)
+            /**
+             * TODO: update RxBleService
+             */
+        }
+
+        override fun onDescriptorReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, descriptor: BluetoothGattDescriptor?) {
+            super.onDescriptorReadRequest(device, requestId, offset, descriptor)
+            /**
+             * TODO: update RxBleDescriptor
+             */
+        }
+
+        override fun onDescriptorWriteRequest(device: BluetoothDevice?, requestId: Int, descriptor: BluetoothGattDescriptor?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
+            super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value)
+            /**
+             * TODO: update RxBleDescriptor
+             */
+        }
+
+        override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
+            super.onMtuChanged(device, mtu)
+            device?.let {
+                deviceMap[it.address]?.setMtu(mtu)
+            }
+        }
+
+        override fun onCharacteristicReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic?) {
+            super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
+            /**
+             * TODO: update RxBleCharacteristic
+             */
+        }
+
+        override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
+            super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
+            /**
+             * TODO: update RxBleCharacteristic
+             */
+        }
+
+        override fun onNotificationSent(device: BluetoothDevice?, status: Int) {
+            super.onNotificationSent(device, status)
+            device?.let {
+                deviceMap[it.address]?.notificationSent()
+            }
+        }
+    }
 
     fun start(): Completable = Completable.fromAction {
         if (server != null) {
             throw Error.ServerAlreadyOpenException
         }
 
-        bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
-        bluetoothAdapter = bluetoothManager?.adapter
-
-        if (bluetoothAdapter == null || bluetoothAdapter?.isEnabled == false) {
+        if (!bluetoothAdapter.isEnabled) {
             throw Error.BluetoothDisabledException
         }
 
-        bluetoothAdapter?.let {
-            if (!isPeripheralModeSupported(it)) {
-                throw Error.NotSupportedException
-            }
+        if (!isPeripheralModeSupported(bluetoothAdapter)) {
+            throw Error.NotSupportedException
         }
 
-        server = bluetoothManager?.openGattServer(context, this)
+        server = bluetoothManager.openGattServer(context, serverCallback)
     }
 
     fun stop(): Completable = Completable.fromAction {
@@ -38,22 +116,37 @@ class RxBleGattServer(val context: Context) : BluetoothGattServerCallback() {
             throw Error.ServerNotOpenException
         }
 
-        /**
-         * TODO: stop advertising, clear devices
-         */
+        advertiser.stop().blockingAwait()
         server?.close()
         server = null
     }
 
-    override fun onConnectionStateChange(device: BluetoothDevice?, status: Int, newState: Int) {
-        log("onConnectionStateChange(device=$device, status=$status, newState=$newState)")
-        /**
-         * TODO: manage device observables and lists
-         */
+    fun status(): Observable<RxBleGattServerStatus> = statusRelay
+
+    fun devices(): Observable<List<RxBleDevice>> = deviceListRelay
+
+    private fun handleDeviceConnected(device: BluetoothDevice) {
+        if (!deviceMap.containsKey(device.address)) {
+            // new device connected
+            deviceMap[device.address] = RxBleDeviceImpl(device).also {
+                statusRelay.accept(RxBleGattServerStatus.Disconnected(it))
+            }
+        }
+
+        deviceListRelay.accept(deviceMap.values.toList())
+    }
+
+    private fun handleDeviceDisconnected(device: BluetoothDevice) {
+        if (deviceMap.containsKey(device.address)) {
+            deviceMap.remove(device.address)?.let {
+                statusRelay.accept(RxBleGattServerStatus.Connected(it))
+            }
+        }
+
+        deviceListRelay.accept(deviceMap.values.toList())
     }
 
     /**
-     * TODO: Add additional checks (extended advertising, periodic advertising)
      * @return true if the device supports peripheral mode
      */
     private fun isPeripheralModeSupported(bluetoothAdapter: BluetoothAdapter): Boolean {

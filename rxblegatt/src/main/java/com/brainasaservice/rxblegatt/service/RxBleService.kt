@@ -1,29 +1,23 @@
 package com.brainasaservice.rxblegatt.service
 
+import android.bluetooth.BluetoothGattService
+import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristic
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicImpl
 import java.util.*
 
-class RxBleService(
-        val uuid: UUID,
-        val type: RxBleServiceType = RxBleServiceType.PRIMARY
-): RxBleServiceInterface {
-    private val characteristics = mutableListOf<RxBleCharacteristicImpl>()
+interface RxBleService {
+    val service: BluetoothGattService
 
-    init {
+    fun removeCharacteristic(characteristic: RxBleCharacteristic)
 
-    }
+    fun removeCharacteristic(uuid: UUID)
 
-    override fun addCharacteristic(characteristic: RxBleCharacteristicImpl) {
-        characteristics.add(characteristic)
-        /**
-         * TODO: add to actual service
-         */
-    }
+    fun addCharacteristic(uuid: UUID, property: Int, permission: Int): RxBleCharacteristic
 
-    override fun removeCharacteristic(characteristic: RxBleCharacteristicImpl) {
-        characteristics.remove(characteristic)
-        /**
-         * TODO: remove from actual service
-         */
+    fun addCharacteristic(characteristic: RxBleCharacteristic)
+
+    enum class Type(val value: Int) {
+        PRIMARY(BluetoothGattService.SERVICE_TYPE_PRIMARY),
+        SECONDARY(BluetoothGattService.SERVICE_TYPE_SECONDARY)
     }
 }
