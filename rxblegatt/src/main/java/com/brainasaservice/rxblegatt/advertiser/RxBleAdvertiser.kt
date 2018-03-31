@@ -1,5 +1,9 @@
 package com.brainasaservice.rxblegatt.advertiser
 
-class RxBleAdvertiser : RxBleAdvertiserInterface {
+import io.reactivex.Completable
 
+interface RxBleAdvertiser {
+    fun start(): Completable
+
+    fun stop(): Completable
 }
