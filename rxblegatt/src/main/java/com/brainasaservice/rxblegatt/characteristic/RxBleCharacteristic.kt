@@ -43,6 +43,8 @@ interface RxBleCharacteristic {
 
         fun addDescriptor(descriptor: RxBleDescriptor): Builder
 
+        fun addDescriptor(block: RxBleDescriptor.Builder.() -> Unit): Builder
+
         fun enableNotificationSubscription(): Builder
 
         fun build(): RxBleCharacteristic

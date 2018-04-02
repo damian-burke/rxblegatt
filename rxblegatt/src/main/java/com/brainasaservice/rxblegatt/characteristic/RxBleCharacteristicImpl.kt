@@ -94,6 +94,11 @@ class RxBleCharacteristicImpl(
             descriptors.add(descriptor)
         }
 
+        override fun addDescriptor(block: RxBleDescriptor.Builder.() -> Unit): Builder = this.apply {
+            val descriptor = RxBleDescriptorImpl.Builder().apply(block).build()
+            descriptors.add(descriptor)
+        }
+
         override fun enableNotificationSubscription(): RxBleCharacteristic.Builder = this.apply {
             descriptors.add(RxBleNotificationDescriptor())
         }
