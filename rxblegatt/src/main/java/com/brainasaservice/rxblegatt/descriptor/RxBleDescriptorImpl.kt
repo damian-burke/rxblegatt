@@ -5,7 +5,9 @@ import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicReadReque
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicWriteRequest
 import com.jakewharton.rxrelay2.PublishRelay
 import io.reactivex.Observable
+import java.security.InvalidParameterException
 import java.util.*
+import kotlin.jvm.internal.Intrinsics
 
 open class RxBleDescriptorImpl(
         final override val uuid: UUID,
@@ -27,5 +29,33 @@ open class RxBleDescriptorImpl(
 
     override fun onWriteRequest(request: RxBleDescriptorWriteRequest) {
         descriptorWriteRequestRelay.accept(request)
+    }
+
+    class Builder : RxBleDescriptor.Builder {
+        private var uuid: UUID? = null
+        private var permissions: Int? = null
+
+        override fun setUuid(uuid: UUID): RxBleDescriptor.Builder = this.apply {
+            this.uuid = uuid
+        }
+
+        override fun setPermissions(permissions: Int): RxBleDescriptor.Builder = this.apply {
+            this.permissions = permissions
+        }
+
+        override fun build(): RxBleDescriptor {
+            if (uuid == null) {
+                throw InvalidParameterException("UUID must be set.")
+            }
+
+            if (permissions == null) {
+                throw InvalidParameterException("Permissions must be set.")
+            }
+
+            return RxBleDescriptorImpl(
+                    uuid!!,
+                    permissions!!
+            )
+        }
     }
 }

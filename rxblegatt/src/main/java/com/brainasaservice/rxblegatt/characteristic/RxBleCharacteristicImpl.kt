@@ -3,6 +3,7 @@ package com.brainasaservice.rxblegatt.characteristic
 import android.bluetooth.BluetoothGattCharacteristic
 import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
+import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorImpl
 import com.brainasaservice.rxblegatt.descriptor.RxBleNotificationDescriptor
 import com.brainasaservice.rxblegatt.device.RxBleDevice
 import com.jakewharton.rxrelay2.PublishRelay
@@ -57,9 +58,15 @@ class RxBleCharacteristicImpl(
         }
     }
 
-    override fun addDescriptor(descriptor: RxBleDescriptor) {
+    override fun addDescriptor(descriptor: RxBleDescriptor): RxBleDescriptor {
         descriptorMap[descriptor.uuid] = descriptor
         characteristic.addDescriptor(descriptor.descriptor)
+        return descriptor
+    }
+
+    override fun addDescriptor(block: RxBleDescriptor.Builder.() -> Unit): RxBleDescriptor {
+        val descriptor = RxBleDescriptorImpl.Builder().apply(block).build()
+        return addDescriptor(descriptor)
     }
 
     class Builder : RxBleCharacteristic.Builder {

@@ -18,7 +18,9 @@ interface RxBleCharacteristic {
 
     val properties: Int
 
-    fun addDescriptor(descriptor: RxBleDescriptor)
+    fun addDescriptor(descriptor: RxBleDescriptor): RxBleDescriptor
+
+    fun addDescriptor(block: RxBleDescriptor.Builder.() -> Unit): RxBleDescriptor
 
     fun enableNotificationSubscription()
 

@@ -16,4 +16,12 @@ interface RxBleDescriptor {
     fun observeWriteRequests(): Observable<RxBleDescriptorWriteRequest>
 
     fun observeReadRequests(): Observable<RxBleDescriptorReadRequest>
+
+    interface Builder {
+        fun setUuid(uuid: UUID): Builder
+
+        fun setPermissions(permissions: Int): Builder
+
+        fun build(): RxBleDescriptor
+    }
 }
