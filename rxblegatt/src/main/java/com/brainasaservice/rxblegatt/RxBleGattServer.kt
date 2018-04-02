@@ -5,10 +5,15 @@ import android.content.ContentValues.TAG
 import android.content.Context
 import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiser
 import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiserImpl
+import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicReadRequest
+import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicWriteRequest
+import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorReadRequest
+import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorWriteRequest
 import com.brainasaservice.rxblegatt.descriptor.RxBleNotificationDescriptor
 import com.brainasaservice.rxblegatt.device.RxBleDevice
 import com.brainasaservice.rxblegatt.device.RxBleDeviceImpl
 import com.brainasaservice.rxblegatt.service.RxBleService
+import com.brainasaservice.rxblegatt.service.RxBleServiceImpl
 import com.brainasaservice.rxblegatt.util.Logger
 import com.jakewharton.rxrelay2.BehaviorRelay
 import com.jakewharton.rxrelay2.PublishRelay
@@ -53,9 +58,9 @@ class RxBleGattServer(private val context: Context) {
 
         override fun onServiceAdded(status: Int, service: BluetoothGattService?) {
             super.onServiceAdded(status, service)
-            /**
-             * TODO: update RxBleService
-             */
+            service?.uuid?.let { uuid ->
+                serviceMap[uuid]?.onServiceAdded()
+            }
         }
 
         override fun onDescriptorReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, descriptor: BluetoothGattDescriptor?) {
@@ -63,6 +68,21 @@ class RxBleGattServer(private val context: Context) {
             /**
              * TODO: update RxBleDescriptor
              */
+            descriptor?.let {
+                val serviceUuid = it.characteristic.service.uuid
+                val charUuid = it.characteristic.uuid
+                val descUuid = it.uuid
+
+                val rxDescriptor = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)?.descriptorMap?.get(descUuid)
+                val rxCharacteristic = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)
+                val rxDevice = deviceMap[device?.address]
+
+                if (rxDevice != null && rxCharacteristic != null && rxDescriptor != null) {
+                    val request = RxBleDescriptorReadRequest(this@RxBleGattServer, rxDevice, rxDescriptor, requestId, offset)
+                    rxDescriptor.onReadRequest(request)
+                    rxDevice.onDescriptorReadRequest(request)
+                }
+            }
         }
 
         override fun onDescriptorWriteRequest(device: BluetoothDevice?, requestId: Int, descriptor: BluetoothGattDescriptor?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
@@ -88,16 +108,21 @@ class RxBleGattServer(private val context: Context) {
                      */
                     if (rxDescriptor is RxBleNotificationDescriptor) {
                         /**
-                         * If the current descriptor is a Notification descriptor, set subscription to active
+                         * If the current descriptor is a Notification descriptor, set subscription
                          * TODO: update the descriptor / characteristic with subscription?
                          */
-                        rxDevice.notificationSubscriptionActive(rxCharacteristic)
+                        if (value?.contentEquals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE) == true) {
+                            rxDevice.notificationSubscriptionInactive(rxCharacteristic)
+                        } else if (value?.contentEquals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE) == true) {
+                            rxDevice.notificationSubscriptionActive(rxCharacteristic)
+                        }
                     } else {
                         /**
-                         * Otherwise, forward the write request to the RxBleCharacteristic
-                         * TODO: update device with write request?
+                         * Otherwise, forward the write request to the RxBleDescriptor
                          */
-                        rxCharacteristic.onDescriptorWriteRequest(rxDevice, requestId, rxDescriptor, preparedWrite, responseNeeded, offset, value)
+                        val request = RxBleDescriptorWriteRequest(rxDevice, rxDescriptor, requestId, preparedWrite, responseNeeded, offset, value)
+                        rxDescriptor.onWriteRequest(request)
+                        rxDevice.onDescriptorWriteRequest(request)
                     }
                 }
             }
@@ -110,25 +135,94 @@ class RxBleGattServer(private val context: Context) {
             }
         }
 
-        override fun onCharacteristicReadRequest(device: BluetoothDevice?, requestId: Int, offset: Int, characteristic: BluetoothGattCharacteristic?) {
+        override fun onCharacteristicReadRequest(
+                device: BluetoothDevice?,
+                requestId: Int,
+                offset: Int,
+                characteristic: BluetoothGattCharacteristic?
+        ) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
             /**
              * TODO: update RxBleCharacteristic
              */
+            characteristic?.let {
+                val serviceUuid = it.service.uuid
+                val charUuid = it.uuid
+
+                val rxCharacteristic = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)
+                val rxDevice = deviceMap[device?.address]
+
+                if (rxCharacteristic != null && rxDevice != null) {
+                    val request = RxBleCharacteristicReadRequest(
+                            this@RxBleGattServer,
+                            rxDevice,
+                            rxCharacteristic,
+                            requestId,
+                            offset
+                    )
+                    rxCharacteristic.onReadRequest(request)
+                    rxDevice.onCharacteristicReadRequest(request)
+                }
+            }
         }
 
-        override fun onCharacteristicWriteRequest(device: BluetoothDevice?, requestId: Int, characteristic: BluetoothGattCharacteristic?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
+        override fun onCharacteristicWriteRequest(
+                device: BluetoothDevice?,
+                requestId: Int,
+                characteristic: BluetoothGattCharacteristic?,
+                preparedWrite: Boolean,
+                responseNeeded: Boolean,
+                offset: Int,
+                value: ByteArray?
+        ) {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
-            /**
-             * TODO: update RxBleCharacteristic
-             */
+            characteristic?.let {
+                val serviceUuid = it.service.uuid
+                val charUuid = it.uuid
+
+                val rxCharacteristic = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)
+                val rxDevice = deviceMap[device?.address]
+
+                if (rxCharacteristic != null && rxDevice != null) {
+                    val request = RxBleCharacteristicWriteRequest(
+                            this@RxBleGattServer,
+                            rxDevice,
+                            rxCharacteristic,
+                            requestId,
+                            preparedWrite,
+                            responseNeeded,
+                            offset,
+                            value
+                    )
+                    rxCharacteristic.onWriteRequest(request)
+                    rxDevice.onCharacteristicWriteRequest(request)
+                }
+            }
         }
 
         override fun onNotificationSent(device: BluetoothDevice?, status: Int) {
             super.onNotificationSent(device, status)
             device?.let {
-                deviceMap[it.address]?.notificationSent()
+                deviceMap[it.address]?.onNotificationSent()
             }
+        }
+    }
+
+    fun sendResponse(response: RxBleResponse): Completable = Completable.fromAction {
+        if (server == null) {
+            throw Error.ServerNotOpenException
+        }
+
+        val result = server?.sendResponse(
+                response.device.device,
+                response.requestId,
+                response.status,
+                response.offset,
+                response.value
+        ) ?: false
+
+        if (!result) {
+            throw Error.ResponseNotSentException
         }
     }
 
@@ -161,6 +255,13 @@ class RxBleGattServer(private val context: Context) {
     fun status(): Observable<RxBleGattServerStatus> = statusRelay
 
     fun devices(): Observable<List<RxBleDevice>> = deviceListRelay
+
+    fun addService(uuid: UUID, type: RxBleService.Type): RxBleService {
+        val service = RxBleServiceImpl(uuid, type)
+        serviceMap[uuid] = service
+        server?.addService(service.service)
+        return service
+    }
 
     private fun handleDeviceConnected(device: BluetoothDevice) {
         if (!deviceMap.containsKey(device.address)) {
@@ -204,5 +305,6 @@ class RxBleGattServer(private val context: Context) {
         object ServerNotOpenException : Error()
         object BluetoothDisabledException : Error()
         object NotSupportedException : Error()
+        object ResponseNotSentException : Error()
     }
 }

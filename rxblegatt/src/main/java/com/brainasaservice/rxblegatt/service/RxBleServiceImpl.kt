@@ -7,12 +7,18 @@ import java.util.*
 
 class RxBleServiceImpl(
         val uuid: UUID,
-        private val type: RxBleService.Type = RxBleService.Type.PRIMARY
+        type: RxBleService.Type = RxBleService.Type.PRIMARY
 ) : RxBleService {
+
+    override var isAdded: Boolean = false
 
     override val service: BluetoothGattService = BluetoothGattService(uuid, type.value)
 
     override val characteristicMap: HashMap<UUID, RxBleCharacteristic> = hashMapOf()
+
+    override fun onServiceAdded() {
+        isAdded = true
+    }
 
     override fun addCharacteristic(
             uuid: UUID,
@@ -20,27 +26,17 @@ class RxBleServiceImpl(
             permission: Int
     ): RxBleCharacteristic {
         val char = RxBleCharacteristicImpl(uuid, property, permission)
-        characteristicMap[uuid] = char
-        service.addCharacteristic(char.characteristic)
-        return char
+        return addCharacteristic(char)
     }
 
-    override fun addCharacteristic(characteristic: RxBleCharacteristic) {
+    override fun addCharacteristic(block: RxBleCharacteristic.Builder.() -> Unit): RxBleCharacteristic {
+        val characteristic = RxBleCharacteristicImpl.Builder().apply(block).build()
+        return addCharacteristic(characteristic)
+    }
+
+    override fun addCharacteristic(characteristic: RxBleCharacteristic): RxBleCharacteristic {
         characteristicMap[characteristic.uuid] = characteristic
         service.addCharacteristic(characteristic.characteristic)
-    }
-
-    /**
-     * TODO: only possible until service has been added to server
-     */
-    override fun removeCharacteristic(characteristic: RxBleCharacteristic) {
-        characteristicMap.remove(characteristic.uuid)
-    }
-
-    /**
-     * TODO: only possible until service has been added to server
-     */
-    override fun removeCharacteristic(uuid: UUID) {
-        characteristicMap.remove(uuid)
+        return characteristic
     }
 }

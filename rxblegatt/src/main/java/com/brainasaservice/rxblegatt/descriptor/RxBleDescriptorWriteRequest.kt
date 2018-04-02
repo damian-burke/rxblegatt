@@ -1,15 +1,11 @@
-package com.brainasaservice.rxblegatt.characteristic
+package com.brainasaservice.rxblegatt.descriptor
 
-import android.bluetooth.BluetoothGattCharacteristic
-import com.brainasaservice.rxblegatt.RxBleGattServer
-import com.brainasaservice.rxblegatt.RxBleGattServerStatus
 import com.brainasaservice.rxblegatt.device.RxBleDevice
 import java.util.Arrays
 
-data class RxBleCharacteristicWriteRequest(
-        val server: RxBleGattServer,
+data class RxBleDescriptorWriteRequest(
         val device: RxBleDevice,
-        val characteristic: RxBleCharacteristic,
+        val descriptor: RxBleDescriptor,
         val requestId: Int,
         val preparedWrite: Boolean,
         val responseNeeded: Boolean,
@@ -20,11 +16,11 @@ data class RxBleCharacteristicWriteRequest(
         if (this === other) return true
         if (javaClass != other?.javaClass) return false
 
-        other as RxBleCharacteristicWriteRequest
+        other as RxBleDescriptorWriteRequest
 
         if (device != other.device) return false
         if (requestId != other.requestId) return false
-        if (characteristic != other.characteristic) return false
+        if (descriptor != other.descriptor) return false
         if (preparedWrite != other.preparedWrite) return false
         if (responseNeeded != other.responseNeeded) return false
         if (offset != other.offset) return false
@@ -36,7 +32,7 @@ data class RxBleCharacteristicWriteRequest(
     override fun hashCode(): Int {
         var result = device.hashCode()
         result = 31 * result + requestId
-        result = 31 * result + (characteristic.hashCode() ?: 0)
+        result = 31 * result + descriptor.hashCode()
         result = 31 * result + preparedWrite.hashCode()
         result = 31 * result + responseNeeded.hashCode()
         result = 31 * result + offset

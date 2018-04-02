@@ -1,7 +1,13 @@
 package com.brainasaservice.rxblegatt.device
 
 import android.bluetooth.BluetoothDevice
+import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristic
+import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicReadRequest
+import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicWriteRequest
+import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
+import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorReadRequest
+import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorWriteRequest
 import com.jakewharton.rxrelay2.PublishRelay
 import io.reactivex.Observable
 import java.util.*
@@ -10,11 +16,35 @@ import kotlin.collections.HashSet
 class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
     private val statusRelay: PublishRelay<RxBleDevice.Status> = PublishRelay.create()
 
+    private val characteristicWriteRequestRelay: PublishRelay<RxBleCharacteristicWriteRequest> = PublishRelay.create()
+
+    private val characteristicReadRequestRelay: PublishRelay<RxBleCharacteristicReadRequest> = PublishRelay.create()
+
+    private val descriptorWriteRequestRelay: PublishRelay<RxBleDescriptorWriteRequest> = PublishRelay.create()
+
+    private val descriptorReadRequestRelay: PublishRelay<RxBleDescriptorReadRequest> = PublishRelay.create()
+
     private var mtu: Int? = null
 
     private val descriptorNotificationSet: HashSet<UUID> = hashSetOf()
 
-    override fun notificationSent() = statusRelay.accept(RxBleDevice.Status.OnNotificationSent)
+    override fun onNotificationSent() = statusRelay.accept(RxBleDevice.Status.OnNotificationSent)
+
+    override fun onCharacteristicReadRequest(request: RxBleCharacteristicReadRequest) {
+        characteristicReadRequestRelay.accept(request)
+    }
+
+    override fun onCharacteristicWriteRequest(request: RxBleCharacteristicWriteRequest) {
+        characteristicWriteRequestRelay.accept(request)
+    }
+
+    override fun onDescriptorWriteRequest(request: RxBleDescriptorWriteRequest) {
+        descriptorWriteRequestRelay.accept(request)
+    }
+
+    override fun onDescriptorReadRequest(request: RxBleDescriptorReadRequest) {
+        descriptorReadRequestRelay.accept(request)
+    }
 
     override fun notificationSubscriptionActive(characteristic: RxBleCharacteristic) {
         descriptorNotificationSet.add(characteristic.uuid)
@@ -32,4 +62,20 @@ class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
     }
 
     override fun status(): Observable<RxBleDevice.Status> = statusRelay
+
+    override fun observeCharacteristicReadRequests(): Observable<RxBleCharacteristicReadRequest> {
+        return characteristicReadRequestRelay
+    }
+
+    override fun observeCharacteristicWriteRequests(): Observable<RxBleCharacteristicWriteRequest> {
+        return characteristicWriteRequestRelay
+    }
+
+    override fun observeDescriptorReadRequests(): Observable<RxBleDescriptorReadRequest> {
+        return descriptorReadRequestRelay
+    }
+
+    override fun observeDescriptorWriteRequests(): Observable<RxBleDescriptorWriteRequest> {
+        return descriptorWriteRequestRelay
+    }
 }

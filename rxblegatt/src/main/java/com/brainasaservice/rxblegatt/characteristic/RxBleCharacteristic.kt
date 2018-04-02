@@ -1,9 +1,11 @@
 package com.brainasaservice.rxblegatt.characteristic
 
 import android.bluetooth.BluetoothGattCharacteristic
+import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
 import com.brainasaservice.rxblegatt.device.RxBleDevice
-import java.util.*
+import io.reactivex.Observable
+import java.util.UUID
 
 interface RxBleCharacteristic {
     val descriptorMap: HashMap<UUID, RxBleDescriptor>
@@ -18,15 +20,17 @@ interface RxBleCharacteristic {
 
     fun addDescriptor(descriptor: RxBleDescriptor)
 
-    fun removeDescriptor(descriptor: RxBleDescriptor)
-
     fun enableNotificationSubscription()
 
     fun disableNotificationSubscription()
 
     fun hasNotificationSubscriptionEnabled(): Boolean
 
-    fun onDescriptorWriteRequest(device: RxBleDevice, requestId: Int, descriptor: RxBleDescriptor, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?)
+    fun onWriteRequest(request: RxBleCharacteristicWriteRequest)
+
+    fun onReadRequest(request: RxBleCharacteristicReadRequest)
+
+    fun observeWriteRequests(): Observable<RxBleCharacteristicWriteRequest>
 
     interface Builder {
         fun setUuid(uuid: UUID): Builder

@@ -1,11 +1,14 @@
 package com.brainasaservice.rxblegatt.characteristic
 
 import android.bluetooth.BluetoothGattCharacteristic
+import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
 import com.brainasaservice.rxblegatt.descriptor.RxBleNotificationDescriptor
-import io.reactivex.internal.util.BackpressureHelper.add
+import com.brainasaservice.rxblegatt.device.RxBleDevice
+import com.jakewharton.rxrelay2.PublishRelay
+import io.reactivex.Observable
 import java.security.InvalidParameterException
-import java.util.*
+import java.util.UUID
 import kotlin.collections.HashMap
 
 class RxBleCharacteristicImpl(
@@ -13,13 +16,28 @@ class RxBleCharacteristicImpl(
         override val properties: Int,
         override val permissions: Int
 ) : RxBleCharacteristic {
+
+    private val writeRequestRelay: PublishRelay<RxBleCharacteristicWriteRequest> = PublishRelay.create()
+
+    private val readRequestRelay: PublishRelay<RxBleCharacteristicReadRequest> = PublishRelay.create()
+
     override val characteristic: BluetoothGattCharacteristic = BluetoothGattCharacteristic(
             uuid,
             properties,
             permissions
     )
 
+    override fun observeWriteRequests(): Observable<RxBleCharacteristicWriteRequest> = writeRequestRelay
+
     override val descriptorMap: HashMap<UUID, RxBleDescriptor> = hashMapOf()
+
+    override fun onWriteRequest(request: RxBleCharacteristicWriteRequest) {
+        writeRequestRelay.accept(request)
+    }
+
+    override fun onReadRequest(request: RxBleCharacteristicReadRequest) {
+        readRequestRelay.accept(request)
+    }
 
     override fun enableNotificationSubscription() {
         val descriptor = RxBleNotificationDescriptor()
@@ -42,13 +60,6 @@ class RxBleCharacteristicImpl(
     override fun addDescriptor(descriptor: RxBleDescriptor) {
         descriptorMap[descriptor.uuid] = descriptor
         characteristic.addDescriptor(descriptor.descriptor)
-    }
-
-    /**
-     * TODO: only possible until descriptor has been added to characteristic
-     */
-    override fun removeDescriptor(descriptor: RxBleDescriptor) {
-        descriptorMap.remove(descriptor.uuid)
     }
 
     class Builder : RxBleCharacteristic.Builder {

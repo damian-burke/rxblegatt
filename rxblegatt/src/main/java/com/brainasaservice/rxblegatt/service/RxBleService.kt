@@ -10,13 +10,15 @@ interface RxBleService {
 
     val characteristicMap: HashMap<UUID, RxBleCharacteristic>
 
-    fun removeCharacteristic(characteristic: RxBleCharacteristic)
-
-    fun removeCharacteristic(uuid: UUID)
+    var isAdded: Boolean
 
     fun addCharacteristic(uuid: UUID, property: Int, permission: Int): RxBleCharacteristic
 
-    fun addCharacteristic(characteristic: RxBleCharacteristic)
+    fun addCharacteristic(characteristic: RxBleCharacteristic): RxBleCharacteristic
+
+    fun addCharacteristic(block: RxBleCharacteristic.Builder.() -> Unit): RxBleCharacteristic
+
+    fun onServiceAdded()
 
     enum class Type(val value: Int) {
         PRIMARY(BluetoothGattService.SERVICE_TYPE_PRIMARY),
