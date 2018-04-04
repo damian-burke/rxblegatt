@@ -1,7 +1,13 @@
 package com.brainasaservice.rxblegatt
 
-import android.bluetooth.*
-import android.content.ContentValues.TAG
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.BluetoothGattServer
+import android.bluetooth.BluetoothGattServerCallback
+import android.bluetooth.BluetoothGattService
+import android.bluetooth.BluetoothManager
 import android.content.Context
 import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiser
 import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiserImpl
@@ -254,7 +260,11 @@ class RxBleGattServer(private val context: Context) {
 
     fun status(): Observable<RxBleGattServerStatus> = statusRelay
 
-    fun devices(): Observable<List<RxBleDevice>> = deviceListRelay
+    fun devices(): Observable<RxBleDevice> = deviceListRelay.flatMap {
+        Observable.fromIterable(it)
+    }
+
+    fun deviceList(): Observable<List<RxBleDevice>> = deviceListRelay
 
     fun addService(uuid: UUID, type: RxBleService.Type): RxBleService {
         val service = RxBleServiceImpl(uuid, type)

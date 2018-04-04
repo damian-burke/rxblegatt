@@ -1,0 +1,175 @@
+package com.brainasaservice.rxblegatt.sample
+
+import android.bluetooth.BluetoothGatt
+import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
+import android.bluetooth.le.AdvertiseData
+import android.bluetooth.le.AdvertiseSettings
+import android.content.Context
+import com.brainasaservice.rxblegatt.RxBleGattServer
+import com.brainasaservice.rxblegatt.RxBleResponse
+import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicWriteRequest
+import com.brainasaservice.rxblegatt.characteristic.parseWith
+import com.brainasaservice.rxblegatt.characteristic.respondIfRequired
+import com.brainasaservice.rxblegatt.device.RxBleDevice
+import com.brainasaservice.rxblegatt.message.RxBleData
+import com.brainasaservice.rxblegatt.parser.RxBleParser
+import com.brainasaservice.rxblegatt.service.RxBleService
+import io.reactivex.Observable
+import java.lang.System.setProperties
+import java.util.UUID
+
+/**
+ * Test-file to test how certain aspects of the syntax look and feel.
+ */
+
+fun x(context: Context) {
+    /**
+     * Initializing the server with a context.
+     */
+    val server = RxBleGattServer(context)
+
+    /**
+     * Preparing advertising data (doesn't support multiple advertising data so far)
+     */
+    val advertising = server.advertiser.apply {
+        data = AdvertiseData.Builder()
+                .setIncludeDeviceName(true)
+                .setIncludeTxPowerLevel(true)
+                .build()
+
+        settings = AdvertiseSettings.Builder()
+                .setAdvertiseMode(AdvertiseSettings.ADVERTISE_MODE_LOW_LATENCY)
+                .setConnectable(true)
+                .setTimeout(0)
+                .setTxPowerLevel(AdvertiseSettings.ADVERTISE_TX_POWER_HIGH)
+                .build()
+    }
+            .start()
+
+    // start server + start advertising
+    val serverDisposable = server
+            .start()
+            .andThen(advertising)
+            .subscribe({
+                println("Server online and advertising initialized!")
+            }, {
+                println("Something went wrong: $it")
+            })
+
+    /**
+     * Subscribe to the server-status
+     */
+    val serverStatusDisposable = server.status()
+            .subscribe({
+                println("Status: $it")
+            }, {
+                println("Something went wrong... $it")
+            })
+
+    /**
+     * Subscribe to connected devices as list
+     */
+    val deviceDisposable = server.deviceList()
+            .subscribe({
+                println("We have ${it.size} devices")
+            }, {
+                println("Something went wrong... $it")
+            })
+
+    /**
+     * Subscribe to flattened device observable
+     */
+    val device = server.devices()
+            .filter { it.device.address == "1.2.3.4" }
+            .onCharacteristicWriteRequest { it.characteristic.uuid == UUID.randomUUID() }
+            .respondIfRequired {
+                RxBleResponse(it.device, it.requestId, BluetoothGatt.GATT_SUCCESS, it.offset, it.value)
+            }
+            .parseWith(GogoParser())
+            .subscribe({ message ->
+
+            }, { error ->
+                println("Something went wrong...")
+            })
+
+    /**
+     * Add a service to the server.
+     */
+    val service = server.addService(UUID.randomUUID(), RxBleService.Type.PRIMARY)
+
+    /**
+     * Add characteristic to the service
+     * TODO: check if this can be done after adding the service to the server.
+     */
+    val characteristic = service.addCharacteristic {
+        setUuid(UUID.randomUUID())
+        setPermissions(BluetoothGattCharacteristic.PERMISSION_WRITE)
+        setProperties(BluetoothGattCharacteristic.PROPERTY_INDICATE)
+    }
+
+    /**
+     * Observe write requests on added characteristic
+     */
+    val characteristicDisposable = characteristic.observeWriteRequests()
+            .respondIfRequired { request ->
+                RxBleResponse(request.device, request.requestId, BluetoothGatt.GATT_SUCCESS, request.offset, request.value)
+            }
+            .parseWith(GogoParser())
+            .subscribe({ request ->
+                println("Received message!")
+                println("Message from ${request.sender}")
+                println("Message object is ${request.message}")
+            }, { error -> println("??? $error") })
+
+    /**
+     * Enable notification subscriptions for characteristic.
+     * This adds a descriptor with the static UUID required.
+     */
+    characteristic.enableNotificationSubscription()
+
+    println("do we allow subscriptions to notifications? ${characteristic.hasNotificationSubscriptionEnabled()}")
+
+    /**
+     * Disable it.
+     */
+    characteristic.disableNotificationSubscription()
+
+    /**
+     * Add descriptor to characteristic and observe write requests
+     */
+    val descriptorDisposable = characteristic.addDescriptor {
+        setUuid(UUID.randomUUID())
+        setPermissions(BluetoothGattDescriptor.PERMISSION_READ)
+    }
+            .observeWriteRequests()
+            .subscribe({ request ->
+                println("??? pls write")
+            })
+
+}
+
+/**
+ * Extension function to map a device to its characteristic write requests.
+ */
+fun Observable<RxBleDevice>.onCharacteristicWriteRequest(): Observable<RxBleCharacteristicWriteRequest> {
+    return this.flatMap {
+        it.observeCharacteristicWriteRequests()
+    }
+}
+
+/**
+ * ^---
+ * With a predicate to watch only certain characteristics.
+ */
+fun Observable<RxBleDevice>.onCharacteristicWriteRequest(predicate: (RxBleCharacteristicWriteRequest) -> Boolean): Observable<RxBleCharacteristicWriteRequest> {
+    return this.flatMap {
+        it.observeCharacteristicWriteRequests()
+                .filter(predicate)
+    }
+}
+
+
+
+
+
