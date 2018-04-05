@@ -1,20 +1,20 @@
 package com.brainasaservice.rxblegatt.device
 
 import android.bluetooth.BluetoothDevice
-import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristic
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicReadRequest
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicWriteRequest
-import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorReadRequest
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorWriteRequest
+import com.jakewharton.rxrelay2.BehaviorRelay
 import com.jakewharton.rxrelay2.PublishRelay
 import io.reactivex.Observable
-import java.util.*
-import kotlin.collections.HashSet
+import java.util.UUID
 
 class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
     private val statusRelay: PublishRelay<RxBleDevice.Status> = PublishRelay.create()
+
+    private val connectionRelay: BehaviorRelay<RxBleDevice.Connection> = BehaviorRelay.create()
 
     private val characteristicWriteRequestRelay: PublishRelay<RxBleCharacteristicWriteRequest> = PublishRelay.create()
 
@@ -26,7 +26,23 @@ class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
 
     private var mtu: Int? = null
 
+    private var connected: Boolean = false
+
     private val descriptorNotificationSet: HashSet<UUID> = hashSetOf()
+
+    override fun isConnected() = connected
+
+    override fun observeConnection(): Observable<RxBleDevice.Connection> = connectionRelay
+
+    override fun setConnected() {
+        connected = true
+        connectionRelay.accept(RxBleDevice.Connection.CONNECTED)
+    }
+
+    override fun setDisconnected() {
+        connected = false
+        connectionRelay.accept(RxBleDevice.Connection.DISCONNECTED)
+    }
 
     override fun onNotificationSent() = statusRelay.accept(RxBleDevice.Status.OnNotificationSent)
 
@@ -61,7 +77,7 @@ class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
         statusRelay.accept(RxBleDevice.Status.OnMtuChanged(mtu))
     }
 
-    override fun status(): Observable<RxBleDevice.Status> = statusRelay
+    override fun observeStatus(): Observable<RxBleDevice.Status> = statusRelay
 
     override fun observeCharacteristicReadRequests(): Observable<RxBleCharacteristicReadRequest> {
         return characteristicReadRequestRelay

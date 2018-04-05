@@ -12,11 +12,8 @@ import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicWriteRequ
 import com.brainasaservice.rxblegatt.characteristic.parseWith
 import com.brainasaservice.rxblegatt.characteristic.respondIfRequired
 import com.brainasaservice.rxblegatt.device.RxBleDevice
-import com.brainasaservice.rxblegatt.message.RxBleData
-import com.brainasaservice.rxblegatt.parser.RxBleParser
 import com.brainasaservice.rxblegatt.service.RxBleService
 import io.reactivex.Observable
-import java.lang.System.setProperties
 import java.util.UUID
 
 /**
@@ -58,7 +55,7 @@ fun x(context: Context) {
             })
 
     /**
-     * Subscribe to the server-status
+     * Subscribe to the server-observeStatus
      */
     val serverStatusDisposable = server.status()
             .subscribe({
@@ -98,12 +95,14 @@ fun x(context: Context) {
      */
     val service = server.addService(UUID.randomUUID(), RxBleService.Type.PRIMARY)
 
+    val veryGoodCharacteristicUuid = UUID.randomUUID()
+
     /**
      * Add characteristic to the service
      * TODO: check if this can be done after adding the service to the server.
      */
     val characteristic = service.addCharacteristic {
-        setUuid(UUID.randomUUID())
+        setUuid(veryGoodCharacteristicUuid)
         setPermissions(BluetoothGattCharacteristic.PERMISSION_WRITE)
         setProperties(BluetoothGattCharacteristic.PROPERTY_INDICATE)
     }
@@ -145,6 +144,32 @@ fun x(context: Context) {
             .observeWriteRequests()
             .subscribe({ request ->
                 println("??? pls write")
+            })
+
+    /**
+     * Create message parser instance
+     */
+    val parser = GogoParser()
+
+    /**
+     * Listen to devices
+     * - Filter, to only use connected ones
+     * - Observe Characteristic Write Requests
+     * - Filter to only read messages on our favorite characteristic
+     * - Send GATT response if required
+     * - Parse (which adds to byte-pool, tries to parse, and emits via Observable)
+     * Finally, subscribe to the parsed messages.
+     */
+    val messageDisposable = server.devices()
+            .filter { it.isConnected() }
+            .doOnNext { println("Connected device: $it") }
+            .flatMap { it.observeCharacteristicWriteRequests() }
+            .filter { it.characteristic.uuid == veryGoodCharacteristicUuid }
+            .respondIfRequired { RxBleResponse(it.device, it.requestId, BluetoothGatt.GATT_SUCCESS, it.offset, it.value) }
+            .parseWith(parser)
+            .subscribe({ msg ->
+            }, { error ->
+                println("Something went wrong... $error")
             })
 
 }

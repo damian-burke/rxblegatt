@@ -28,7 +28,7 @@ fun Observable<RxBleCharacteristicWriteRequest>.respondIfRequired(block: (reques
 fun Observable<RxBleCharacteristicWriteRequest>.parseWith(parser: RxBleParser): Observable<RxBleMessage> {
     return this.flatMap { request ->
         request.value?.let {
-            parser.parse(it).map {
+            parser.parse(request.device, it).map {
                 RxBleMessage(
                         it,
                         request.device

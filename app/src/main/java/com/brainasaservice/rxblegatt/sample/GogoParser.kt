@@ -1,5 +1,6 @@
 package com.brainasaservice.rxblegatt.sample
 
+import com.brainasaservice.rxblegatt.device.RxBleDevice
 import com.brainasaservice.rxblegatt.message.RxBleData
 import com.brainasaservice.rxblegatt.parser.RxBleParser
 
@@ -7,7 +8,7 @@ import com.brainasaservice.rxblegatt.parser.RxBleParser
  * Example implementation of RxBleParser to parse ByteArrays into RxBleData subclasses
  */
 class GogoParser : RxBleParser() {
-    override fun read(bytes: ByteArray): RxBleData? {
+    override fun read(device: RxBleDevice, bytes: ByteArray): RxBleData? {
         if (bytes.size < 2) {
             return null
         }
@@ -21,7 +22,7 @@ class GogoParser : RxBleParser() {
 
         val data = bytes.copyOfRange(2, 2 + length).toString()
 
-        drop(2 + length)
+        drop(device, 2 + length)
 
         return GogoMessage(
                 sync,
