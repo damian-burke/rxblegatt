@@ -23,10 +23,10 @@ import com.brainasaservice.rxblegatt.service.RxBleServiceImpl
 import com.brainasaservice.rxblegatt.util.Logger
 import com.jakewharton.rxrelay2.BehaviorRelay
 import com.jakewharton.rxrelay2.PublishRelay
+import com.jakewharton.rxrelay2.ReplayRelay
 import io.reactivex.Completable
 import io.reactivex.Observable
-import java.util.*
-import kotlin.collections.HashMap
+import java.util.UUID
 
 class RxBleGattServer(private val context: Context) {
     val advertiser: RxBleAdvertiser by lazy {
@@ -38,6 +38,8 @@ class RxBleGattServer(private val context: Context) {
     private val deviceMap: HashMap<String, RxBleDevice> = hashMapOf()
 
     private val serviceMap: HashMap<UUID, RxBleService> = hashMapOf()
+
+    private val deviceRelay: ReplayRelay<RxBleDevice> = ReplayRelay.create(DEVICE_BUFFER)
 
     private val statusRelay: PublishRelay<RxBleGattServerStatus> = PublishRelay.create()
 
@@ -260,9 +262,7 @@ class RxBleGattServer(private val context: Context) {
 
     fun status(): Observable<RxBleGattServerStatus> = statusRelay
 
-    fun devices(): Observable<RxBleDevice> = deviceListRelay.flatMap {
-        Observable.fromIterable(it)
-    }
+    fun devices(): Observable<RxBleDevice> = deviceRelay
 
     fun deviceList(): Observable<List<RxBleDevice>> = deviceListRelay
 
@@ -275,10 +275,13 @@ class RxBleGattServer(private val context: Context) {
 
     private fun handleDeviceConnected(device: BluetoothDevice) {
         if (!deviceMap.containsKey(device.address)) {
-            // new device connected
+            // new device connected, add to map + push in devices relay
             deviceMap[device.address] = RxBleDeviceImpl(device).also {
-                statusRelay.accept(RxBleGattServerStatus.Disconnected(it))
+                statusRelay.accept(RxBleGattServerStatus.Connected(it))
+                deviceRelay.accept(it)
             }
+        } else {
+            deviceMap[device.address]?.setConnected()
         }
 
         deviceListRelay.accept(deviceMap.values.toList())
@@ -286,8 +289,9 @@ class RxBleGattServer(private val context: Context) {
 
     private fun handleDeviceDisconnected(device: BluetoothDevice) {
         if (deviceMap.containsKey(device.address)) {
-            deviceMap.remove(device.address)?.let {
-                statusRelay.accept(RxBleGattServerStatus.Connected(it))
+            deviceMap[device.address]?.let {
+                statusRelay.accept(RxBleGattServerStatus.Disconnected(it))
+                it.setDisconnected()
             }
         }
 
@@ -308,6 +312,8 @@ class RxBleGattServer(private val context: Context) {
 
     companion object {
         const val TAG = "RxBleGattServer"
+
+        const val DEVICE_BUFFER = 24
     }
 
     sealed class Error : Throwable() {
