@@ -12,6 +12,7 @@ import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicWriteRequ
 import com.brainasaservice.rxblegatt.characteristic.parseWith
 import com.brainasaservice.rxblegatt.characteristic.respondIfRequired
 import com.brainasaservice.rxblegatt.device.RxBleDevice
+import com.brainasaservice.rxblegatt.device.clearBufferOnDisconnect
 import com.brainasaservice.rxblegatt.service.RxBleService
 import io.reactivex.Observable
 import java.util.UUID
@@ -154,6 +155,7 @@ fun x(context: Context) {
     /**
      * Listen to devices
      * - Filter, to only use connected ones
+     * - Clear message byte buffer of each device once it has disconnected
      * - Observe Characteristic Write Requests
      * - Filter to only read messages on our favorite characteristic
      * - Send GATT response if required
@@ -163,6 +165,7 @@ fun x(context: Context) {
     val messageDisposable = server.devices()
             .filter { it.isConnected() }
             .doOnNext { println("Connected device: $it") }
+            .clearBufferOnDisconnect(parser)
             .flatMap { it.observeCharacteristicWriteRequests() }
             .filter { it.characteristic.uuid == veryGoodCharacteristicUuid }
             .respondIfRequired { RxBleResponse(it.device, it.requestId, BluetoothGatt.GATT_SUCCESS, it.offset, it.value) }
