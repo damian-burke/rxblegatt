@@ -1,9 +1,12 @@
 package com.brainasaservice.rxblegatt.characteristic
 
 import android.bluetooth.BluetoothGattCharacteristic
+import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorImpl
 import com.brainasaservice.rxblegatt.descriptor.RxBleNotificationDescriptor
+import com.brainasaservice.rxblegatt.device.RxBleDevice
+import io.reactivex.Completable
 import io.reactivex.Observable
 import io.reactivex.subjects.PublishSubject
 import java.security.InvalidParameterException
@@ -12,8 +15,11 @@ import java.util.UUID
 class RxBleCharacteristicImpl(
         override val uuid: UUID,
         override val properties: Int,
-        override val permissions: Int
+        override val permissions: Int,
+        private val server: RxBleGattServer
 ) : RxBleCharacteristic {
+
+    private val subscribedDevices: List<RxBleDevice> = mutableListOf()
 
     private val writeRequestSubject: PublishSubject<RxBleCharacteristicWriteRequest> = PublishSubject.create()
 
@@ -32,6 +38,16 @@ class RxBleCharacteristicImpl(
     override fun onWriteRequest(request: RxBleCharacteristicWriteRequest) {
         writeRequestSubject.onNext(request)
     }
+
+    override fun setValue(bytes: ByteArray, notifySubscribers: Boolean): Completable = server.deviceList()
+            .doOnSubscribe { characteristic.value = bytes }
+            .first(emptyList())
+            .filter { notifySubscribers }
+            .flatMapObservable { Observable.fromIterable(it) }
+            .filter { it.isNotificationSubscriptionActive(this) }
+            .flatMapCompletable {
+                server.notifyCharacteristicChanged(it, this)
+            }
 
     override fun onReadRequest(request: RxBleCharacteristicReadRequest) {
         readRequestSubject.onNext(request)
@@ -100,7 +116,7 @@ class RxBleCharacteristicImpl(
             descriptors.add(RxBleNotificationDescriptor())
         }
 
-        override fun build(): RxBleCharacteristic {
+        override fun build(server: RxBleGattServer): RxBleCharacteristic {
             if (uuid == null) {
                 throw InvalidParameterException("UUID must be set.")
             }
@@ -116,7 +132,8 @@ class RxBleCharacteristicImpl(
             return RxBleCharacteristicImpl(
                     uuid!!,
                     properties!!,
-                    permissions!!
+                    permissions!!,
+                    server
             ).apply {
                 descriptors.onEach {
                     addDescriptor(it)

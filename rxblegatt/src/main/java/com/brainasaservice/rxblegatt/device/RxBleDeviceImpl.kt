@@ -12,6 +12,7 @@ import io.reactivex.subjects.PublishSubject
 import java.util.UUID
 
 class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
+
     private val statusSubject: PublishSubject<RxBleDevice.Status> = PublishSubject.create()
 
     private val connectionSubject: BehaviorSubject<RxBleDevice.Connection> = BehaviorSubject.create()
@@ -62,12 +63,12 @@ class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
         descriptorReadRequestSubject.onNext(request)
     }
 
-    override fun notificationSubscriptionActive(characteristic: RxBleCharacteristic) {
+    override fun setNotificationSubscriptionActive(characteristic: RxBleCharacteristic) {
         descriptorNotificationSet.add(characteristic.uuid)
         statusSubject.onNext(RxBleDevice.Status.OnNotificationSubscriptionActive(characteristic))
     }
 
-    override fun notificationSubscriptionInactive(characteristic: RxBleCharacteristic) {
+    override fun setNotificationSubscriptionInactive(characteristic: RxBleCharacteristic) {
         descriptorNotificationSet.remove(characteristic.uuid)
         statusSubject.onNext(RxBleDevice.Status.OnNotificationSubscriptionInactive(characteristic))
     }
@@ -94,4 +95,10 @@ class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
     override fun observeDescriptorWriteRequests(): Observable<RxBleDescriptorWriteRequest> {
         return descriptorWriteRequestSubject
     }
+
+    override fun isNotificationSubscriptionActive(characteristic: RxBleCharacteristic): Boolean = descriptorNotificationSet.contains(characteristic.uuid)
+
+    override fun observeNotificationSent(): Observable<RxBleDevice> = statusSubject
+            .filter { it == RxBleDevice.Status.OnNotificationSent }
+            .map { this }
 }

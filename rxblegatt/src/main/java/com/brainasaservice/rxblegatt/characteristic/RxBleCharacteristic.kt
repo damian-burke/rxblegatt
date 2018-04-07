@@ -3,7 +3,7 @@ package com.brainasaservice.rxblegatt.characteristic
 import android.bluetooth.BluetoothGattCharacteristic
 import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
-import com.brainasaservice.rxblegatt.device.RxBleDevice
+import io.reactivex.Completable
 import io.reactivex.Observable
 import java.util.UUID
 
@@ -17,6 +17,8 @@ interface RxBleCharacteristic {
     val permissions: Int
 
     val properties: Int
+
+    fun setValue(bytes: ByteArray, notifySubscribers: Boolean = true): Completable
 
     fun addDescriptor(descriptor: RxBleDescriptor): RxBleDescriptor
 
@@ -47,6 +49,6 @@ interface RxBleCharacteristic {
 
         fun enableNotificationSubscription(): Builder
 
-        fun build(): RxBleCharacteristic
+        fun build(server: RxBleGattServer): RxBleCharacteristic
     }
 }
