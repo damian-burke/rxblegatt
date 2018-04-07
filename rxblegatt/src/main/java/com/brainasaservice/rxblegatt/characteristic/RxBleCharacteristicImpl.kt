@@ -1,16 +1,13 @@
 package com.brainasaservice.rxblegatt.characteristic
 
 import android.bluetooth.BluetoothGattCharacteristic
-import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorImpl
 import com.brainasaservice.rxblegatt.descriptor.RxBleNotificationDescriptor
-import com.brainasaservice.rxblegatt.device.RxBleDevice
-import com.jakewharton.rxrelay2.PublishRelay
 import io.reactivex.Observable
+import io.reactivex.subjects.PublishSubject
 import java.security.InvalidParameterException
 import java.util.UUID
-import kotlin.collections.HashMap
 
 class RxBleCharacteristicImpl(
         override val uuid: UUID,
@@ -18,9 +15,9 @@ class RxBleCharacteristicImpl(
         override val permissions: Int
 ) : RxBleCharacteristic {
 
-    private val writeRequestRelay: PublishRelay<RxBleCharacteristicWriteRequest> = PublishRelay.create()
+    private val writeRequestSubject: PublishSubject<RxBleCharacteristicWriteRequest> = PublishSubject.create()
 
-    private val readRequestRelay: PublishRelay<RxBleCharacteristicReadRequest> = PublishRelay.create()
+    private val readRequestSubject: PublishSubject<RxBleCharacteristicReadRequest> = PublishSubject.create()
 
     override val characteristic: BluetoothGattCharacteristic = BluetoothGattCharacteristic(
             uuid,
@@ -28,16 +25,16 @@ class RxBleCharacteristicImpl(
             permissions
     )
 
-    override fun observeWriteRequests(): Observable<RxBleCharacteristicWriteRequest> = writeRequestRelay
+    override fun observeWriteRequests(): Observable<RxBleCharacteristicWriteRequest> = writeRequestSubject
 
     override val descriptorMap: HashMap<UUID, RxBleDescriptor> = hashMapOf()
 
     override fun onWriteRequest(request: RxBleCharacteristicWriteRequest) {
-        writeRequestRelay.accept(request)
+        writeRequestSubject.onNext(request)
     }
 
     override fun onReadRequest(request: RxBleCharacteristicReadRequest) {
-        readRequestRelay.accept(request)
+        readRequestSubject.onNext(request)
     }
 
     override fun enableNotificationSubscription() {

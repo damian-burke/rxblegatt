@@ -21,11 +21,11 @@ import com.brainasaservice.rxblegatt.device.RxBleDeviceImpl
 import com.brainasaservice.rxblegatt.service.RxBleService
 import com.brainasaservice.rxblegatt.service.RxBleServiceImpl
 import com.brainasaservice.rxblegatt.util.Logger
-import com.jakewharton.rxrelay2.BehaviorRelay
-import com.jakewharton.rxrelay2.PublishRelay
-import com.jakewharton.rxrelay2.ReplayRelay
 import io.reactivex.Completable
 import io.reactivex.Observable
+import io.reactivex.subjects.BehaviorSubject
+import io.reactivex.subjects.PublishSubject
+import io.reactivex.subjects.ReplaySubject
 import java.util.UUID
 
 class RxBleGattServer(private val context: Context) {
@@ -39,11 +39,11 @@ class RxBleGattServer(private val context: Context) {
 
     private val serviceMap: HashMap<UUID, RxBleService> = hashMapOf()
 
-    private val deviceRelay: ReplayRelay<RxBleDevice> = ReplayRelay.create(DEVICE_BUFFER)
+    private val deviceSubject: ReplaySubject<RxBleDevice> = ReplaySubject.create(DEVICE_BUFFER)
 
-    private val statusRelay: PublishRelay<RxBleGattServerStatus> = PublishRelay.create()
+    private val statusSubject: PublishSubject<RxBleGattServerStatus> = PublishSubject.create()
 
-    private val deviceListRelay: BehaviorRelay<List<RxBleDevice>> = BehaviorRelay.create()
+    private val deviceListSubject: BehaviorSubject<List<RxBleDevice>> = BehaviorSubject.create()
 
     private val bluetoothManager: BluetoothManager by lazy {
         context.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
@@ -260,11 +260,11 @@ class RxBleGattServer(private val context: Context) {
         server = null
     }
 
-    fun status(): Observable<RxBleGattServerStatus> = statusRelay
+    fun status(): Observable<RxBleGattServerStatus> = statusSubject
 
-    fun devices(): Observable<RxBleDevice> = deviceRelay
+    fun devices(): Observable<RxBleDevice> = deviceSubject
 
-    fun deviceList(): Observable<List<RxBleDevice>> = deviceListRelay
+    fun deviceList(): Observable<List<RxBleDevice>> = deviceListSubject
 
     fun addService(uuid: UUID, type: RxBleService.Type): RxBleService {
         val service = RxBleServiceImpl(uuid, type)
@@ -277,25 +277,25 @@ class RxBleGattServer(private val context: Context) {
         if (!deviceMap.containsKey(device.address)) {
             // new device connected, add to map + push in devices relay
             deviceMap[device.address] = RxBleDeviceImpl(device).also {
-                statusRelay.accept(RxBleGattServerStatus.Connected(it))
-                deviceRelay.accept(it)
+                statusSubject.onNext(RxBleGattServerStatus.Connected(it))
+                deviceSubject.onNext(it)
             }
         } else {
             deviceMap[device.address]?.setConnected()
         }
 
-        deviceListRelay.accept(deviceMap.values.toList())
+        deviceListSubject.onNext(deviceMap.values.toList())
     }
 
     private fun handleDeviceDisconnected(device: BluetoothDevice) {
         if (deviceMap.containsKey(device.address)) {
             deviceMap[device.address]?.let {
-                statusRelay.accept(RxBleGattServerStatus.Disconnected(it))
+                statusSubject.onNext(RxBleGattServerStatus.Disconnected(it))
                 it.setDisconnected()
             }
         }
 
-        deviceListRelay.accept(deviceMap.values.toList())
+        deviceListSubject.onNext(deviceMap.values.toList())
     }
 
     /**

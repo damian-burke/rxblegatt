@@ -5,9 +5,9 @@ import android.bluetooth.le.AdvertiseCallback
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiser.Status
-import com.jakewharton.rxrelay2.PublishRelay
 import io.reactivex.Completable
 import io.reactivex.Observable
+import io.reactivex.subjects.PublishSubject
 
 class RxBleAdvertiserImpl(val bluetoothAdapter: BluetoothAdapter) : RxBleAdvertiser {
     override var settings: AdvertiseSettings? = null
@@ -16,17 +16,17 @@ class RxBleAdvertiserImpl(val bluetoothAdapter: BluetoothAdapter) : RxBleAdverti
 
     override var response: AdvertiseData? = null
 
-    private val statusRelay: PublishRelay<Status> = PublishRelay.create()
+    private val statusSubject: PublishSubject<Status> = PublishSubject.create()
 
     private var callback: AdvertiseCallback = object : AdvertiseCallback() {
         override fun onStartFailure(errorCode: Int) {
             super.onStartFailure(errorCode)
-            statusRelay.accept(Status.Error(RxBleAdvertiser.Error.fromCode(errorCode)))
+            statusSubject.onNext(Status.Error(RxBleAdvertiser.Error.fromCode(errorCode)))
         }
 
         override fun onStartSuccess(settingsInEffect: AdvertiseSettings?) {
             super.onStartSuccess(settingsInEffect)
-            statusRelay.accept(Status.Active)
+            statusSubject.onNext(Status.Active)
         }
     }
 
@@ -48,10 +48,10 @@ class RxBleAdvertiserImpl(val bluetoothAdapter: BluetoothAdapter) : RxBleAdverti
 
     override fun stop(): Completable = Completable.fromAction {
         bluetoothAdapter.bluetoothLeAdvertiser.stopAdvertising(callback)
-        statusRelay.accept(Status.Inactive)
+        statusSubject.onNext(Status.Inactive)
     }
 
-    override fun status(): Observable<Status> = statusRelay
+    override fun status(): Observable<Status> = statusSubject
 
     /**
      * Start advertising with defined response data.
