@@ -4,11 +4,15 @@ import com.brainasaservice.rxblegatt.device.RxBleDevice
 import com.brainasaservice.rxblegatt.message.RxBleData
 import io.reactivex.Observable
 
-abstract class RxBleParser {
+abstract class RxBleParser(val clearOnDisconnect: Boolean) {
     private val deviceBytesMap = hashMapOf<RxBleDevice, ByteArray>()
 
+    private fun getDeviceBuffer(device: RxBleDevice): ByteArray {
+        return deviceBytesMap.getOrPut(device, { ByteArray(0) })
+    }
+
     fun parse(device: RxBleDevice, bytes: ByteArray): Observable<RxBleData> {
-        val pool = deviceBytesMap.getOrElse(device, { ByteArray(0) })
+        val pool = getDeviceBuffer(device)
         val merged = pool + bytes
         deviceBytesMap[device] = merged
         return read(device, merged)?.let { Observable.just(it) } ?: Observable.never()
