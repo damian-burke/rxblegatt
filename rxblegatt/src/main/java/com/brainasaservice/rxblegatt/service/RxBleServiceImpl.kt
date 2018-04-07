@@ -1,13 +1,16 @@
 package com.brainasaservice.rxblegatt.service
 
 import android.bluetooth.BluetoothGattService
+import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristic
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicImpl
-import java.util.*
+import java.util.HashMap
+import java.util.UUID
 
 class RxBleServiceImpl(
         val uuid: UUID,
-        type: RxBleService.Type = RxBleService.Type.PRIMARY
+        type: RxBleService.Type = RxBleService.Type.PRIMARY,
+        private val server: RxBleGattServer
 ) : RxBleService {
 
     override var isAdded: Boolean = false
@@ -25,12 +28,12 @@ class RxBleServiceImpl(
             property: Int,
             permission: Int
     ): RxBleCharacteristic {
-        val char = RxBleCharacteristicImpl(uuid, property, permission)
+        val char = RxBleCharacteristicImpl(uuid, property, permission, server)
         return addCharacteristic(char)
     }
 
     override fun addCharacteristic(block: RxBleCharacteristic.Builder.() -> Unit): RxBleCharacteristic {
-        val characteristic = RxBleCharacteristicImpl.Builder().apply(block).build()
+        val characteristic = RxBleCharacteristicImpl.Builder().apply(block).build(server)
         return addCharacteristic(characteristic)
     }
 

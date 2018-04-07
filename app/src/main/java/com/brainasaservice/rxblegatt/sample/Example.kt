@@ -46,8 +46,7 @@ fun x(context: Context) {
             .start()
 
     // start server + start advertising
-    val serverDisposable = server
-            .start()
+    val serverDisposable = server.start()
             .andThen(advertising)
             .subscribe({
                 println("Server online and advertising initialized!")
@@ -109,7 +108,7 @@ fun x(context: Context) {
     }
 
     /**
-     * Observe write requests on added characteristic
+     * Observe setValue requests on added characteristic
      */
     val characteristicDisposable = characteristic.observeWriteRequests()
             .respondIfRequired { request ->
@@ -136,7 +135,7 @@ fun x(context: Context) {
     characteristic.disableNotificationSubscription()
 
     /**
-     * Add descriptor to characteristic and observe write requests
+     * Add descriptor to characteristic and observe setValue requests
      */
     val descriptorDisposable = characteristic.addDescriptor {
         setUuid(UUID.randomUUID())
@@ -144,7 +143,7 @@ fun x(context: Context) {
     }
             .observeWriteRequests()
             .subscribe({ request ->
-                println("??? pls write")
+                println("??? pls setValue")
             })
 
     /**
@@ -178,7 +177,7 @@ fun x(context: Context) {
 }
 
 /**
- * Extension function to map a device to its characteristic write requests.
+ * Extension function to map a device to its characteristic setValue requests.
  */
 fun Observable<RxBleDevice>.onCharacteristicWriteRequest(): Observable<RxBleCharacteristicWriteRequest> {
     return this.flatMap {

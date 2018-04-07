@@ -11,6 +11,7 @@ import android.bluetooth.BluetoothManager
 import android.content.Context
 import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiser
 import com.brainasaservice.rxblegatt.advertiser.RxBleAdvertiserImpl
+import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristic
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicReadRequest
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicWriteRequest
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorReadRequest
@@ -26,8 +27,6 @@ import io.reactivex.Observable
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.ReplaySubject
-import io.reactivex.Completable
-import io.reactivex.Observable
 import java.util.UUID
 
 class RxBleGattServer(private val context: Context) {
@@ -122,13 +121,13 @@ class RxBleGattServer(private val context: Context) {
                          * TODO: update the descriptor / characteristic with subscription?
                          */
                         if (value?.contentEquals(BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE) == true) {
-                            rxDevice.notificationSubscriptionInactive(rxCharacteristic)
+                            rxDevice.setNotificationSubscriptionInactive(rxCharacteristic)
                         } else if (value?.contentEquals(BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE) == true) {
-                            rxDevice.notificationSubscriptionActive(rxCharacteristic)
+                            rxDevice.setNotificationSubscriptionActive(rxCharacteristic)
                         }
                     } else {
                         /**
-                         * Otherwise, forward the write request to the RxBleDescriptor
+                         * Otherwise, forward the setValue request to the RxBleDescriptor
                          */
                         val request = RxBleDescriptorWriteRequest(rxDevice, rxDescriptor, requestId, preparedWrite, responseNeeded, offset, value)
                         rxDescriptor.onWriteRequest(request)
@@ -269,11 +268,35 @@ class RxBleGattServer(private val context: Context) {
     fun deviceList(): Observable<List<RxBleDevice>> = deviceListSubject
 
     fun addService(uuid: UUID, type: RxBleService.Type): RxBleService {
-        val service = RxBleServiceImpl(uuid, type)
+        val service = RxBleServiceImpl(uuid, type, this)
         serviceMap[uuid] = service
         server?.addService(service.service)
         return service
     }
+
+    /**
+     * - Notify device that characteristic's value has changed
+     * - Check if notification was successful
+     * - Wait until server callback reports successful notification
+     */
+    fun notifyCharacteristicChanged(device: RxBleDevice, characteristic: RxBleCharacteristic): Completable = Completable.fromAction {
+        val isSent = server?.notifyCharacteristicChanged(
+                device.device,
+                characteristic.characteristic,
+                false
+        ) ?: false
+
+        if (!isSent) {
+            /**
+             * TODO: specify error for this
+             */
+            throw Exception()
+        }
+    }.andThen(
+            device.observeNotificationSent()
+                    .firstOrError()
+                    .toCompletable()
+    )
 
     private fun handleDeviceConnected(device: BluetoothDevice) {
         if (!deviceMap.containsKey(device.address)) {

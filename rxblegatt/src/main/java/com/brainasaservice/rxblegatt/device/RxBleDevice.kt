@@ -23,11 +23,15 @@ interface RxBleDevice {
 
     fun observeDescriptorReadRequests(): Observable<RxBleDescriptorReadRequest>
 
+    fun observeNotificationSent(): Observable<RxBleDevice>
+
     fun setMtu(mtu: Int)
 
-    fun notificationSubscriptionActive(characteristic: RxBleCharacteristic)
+    fun setNotificationSubscriptionActive(characteristic: RxBleCharacteristic)
 
-    fun notificationSubscriptionInactive(characteristic: RxBleCharacteristic)
+    fun setNotificationSubscriptionInactive(characteristic: RxBleCharacteristic)
+
+    fun isNotificationSubscriptionActive(characteristic: RxBleCharacteristic): Boolean
 
     fun onCharacteristicWriteRequest(request: RxBleCharacteristicWriteRequest)
 

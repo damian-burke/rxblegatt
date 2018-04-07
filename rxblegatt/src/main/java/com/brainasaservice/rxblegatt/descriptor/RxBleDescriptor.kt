@@ -2,7 +2,7 @@ package com.brainasaservice.rxblegatt.descriptor
 
 import android.bluetooth.BluetoothGattDescriptor
 import io.reactivex.Observable
-import java.util.*
+import java.util.UUID
 
 interface RxBleDescriptor {
     val uuid: UUID
