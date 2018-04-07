@@ -33,7 +33,6 @@ dependencies {
 
     // RxJava
     implementation "io.reactivex.rxjava2:rxjava:$rxjava_version"
-    implementation "com.jakewharton.rxrelay2:rxrelay:$rxrelay_version"
 
     testImplementation "junit:junit:$junit_version"
 }
