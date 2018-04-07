@@ -46,8 +46,7 @@ fun x(context: Context) {
             .start()
 
     // start server + start advertising
-    val serverDisposable = server
-            .start()
+    val serverDisposable = server.start()
             .andThen(advertising)
             .subscribe({
                 println("Server online and advertising initialized!")
