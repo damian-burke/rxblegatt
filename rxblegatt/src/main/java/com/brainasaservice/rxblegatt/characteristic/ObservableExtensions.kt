@@ -6,10 +6,10 @@ import com.brainasaservice.rxblegatt.parser.RxBleParser
 import io.reactivex.Observable
 
 /**
- * If the setValue request had the "response needed" flag set to true, a response with given parameters
- * will be sent to the device that originally sent the setValue request.
+ * If the write request had the "response needed" flag set to true, a response with given parameters
+ * will be sent to the device that originally sent the write request.
  *
- * @param block Function to create the RxBleResponse based on the setValue request.
+ * @param block Function to create the RxBleResponse based on the write request.
  */
 fun Observable<RxBleCharacteristicWriteRequest>.respondIfRequired(block: (request: RxBleCharacteristicWriteRequest) -> RxBleResponse): Observable<RxBleCharacteristicWriteRequest> {
     return this.flatMap {

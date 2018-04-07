@@ -127,7 +127,7 @@ class RxBleGattServer(private val context: Context) {
                         }
                     } else {
                         /**
-                         * Otherwise, forward the setValue request to the RxBleDescriptor
+                         * Otherwise, forward the write request to the RxBleDescriptor
                          */
                         val request = RxBleDescriptorWriteRequest(rxDevice, rxDescriptor, requestId, preparedWrite, responseNeeded, offset, value)
                         rxDescriptor.onWriteRequest(request)
