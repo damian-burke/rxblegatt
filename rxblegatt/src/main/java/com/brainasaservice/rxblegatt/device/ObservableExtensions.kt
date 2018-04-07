@@ -14,10 +14,13 @@ import io.reactivex.Observable
 fun Observable<RxBleDevice>.clearBufferOnDisconnect(parser: RxBleParser): Observable<RxBleDevice> {
     return this.flatMap { device ->
         device.observeConnection()
-                .filter { it == RxBleDevice.Connection.DISCONNECTED }
                 .flatMapCompletable {
-                    Completable.fromAction {
-                        parser.clear(device)
+                    if (it == RxBleDevice.Connection.DISCONNECTED) {
+                        Completable.fromAction {
+                            parser.clear(device)
+                        }
+                    } else {
+                        Completable.complete()
                     }
                 }
                 .andThen(Observable.just(device))
