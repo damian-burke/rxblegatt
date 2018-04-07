@@ -4,7 +4,7 @@ import com.brainasaservice.rxblegatt.device.RxBleDevice
 import com.brainasaservice.rxblegatt.message.RxBleData
 import io.reactivex.Observable
 
-abstract class RxBleParser(val clearOnDisconnect: Boolean) {
+abstract class RxBleParser() {
     private val deviceBytesMap = hashMapOf<RxBleDevice, ByteArray>()
 
     private fun getDeviceBuffer(device: RxBleDevice): ByteArray {
