@@ -8,8 +8,10 @@ abstract class RxBleParser {
     private val deviceBytesMap = hashMapOf<RxBleDevice, ByteArray>()
 
     fun parse(device: RxBleDevice, bytes: ByteArray): Observable<RxBleData> {
-        val pool = deviceBytesMap.getOrPut(device, { ByteArray(0) })
-        return read(device, pool)?.let { Observable.just(it) } ?: Observable.never()
+        val pool = deviceBytesMap.getOrElse(device, { ByteArray(0) })
+        val merged = pool + bytes
+        deviceBytesMap[device] = merged
+        return read(device, merged)?.let { Observable.just(it) } ?: Observable.never()
     }
 
     /**

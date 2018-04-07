@@ -1,8 +1,6 @@
 package com.brainasaservice.rxblegatt.characteristic
 
-import android.bluetooth.BluetoothGattCharacteristic
 import com.brainasaservice.rxblegatt.RxBleGattServer
-import com.brainasaservice.rxblegatt.RxBleGattServerStatus
 import com.brainasaservice.rxblegatt.device.RxBleDevice
 import java.util.Arrays
 
@@ -36,7 +34,7 @@ data class RxBleCharacteristicWriteRequest(
     override fun hashCode(): Int {
         var result = device.hashCode()
         result = 31 * result + requestId
-        result = 31 * result + (characteristic.hashCode() ?: 0)
+        result = 31 * result + (characteristic.hashCode())
         result = 31 * result + preparedWrite.hashCode()
         result = 31 * result + responseNeeded.hashCode()
         result = 31 * result + offset
