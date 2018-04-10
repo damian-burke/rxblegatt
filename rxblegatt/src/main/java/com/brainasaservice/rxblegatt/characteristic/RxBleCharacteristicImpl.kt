@@ -8,6 +8,7 @@ import com.brainasaservice.rxblegatt.descriptor.RxBleNotificationDescriptor
 import com.brainasaservice.rxblegatt.device.RxBleDevice
 import io.reactivex.Completable
 import io.reactivex.Observable
+import io.reactivex.Single
 import io.reactivex.subjects.PublishSubject
 import java.security.InvalidParameterException
 import java.util.UUID
@@ -39,11 +40,26 @@ class RxBleCharacteristicImpl(
         writeRequestSubject.onNext(request)
     }
 
-    override fun setValue(bytes: ByteArray, notifySubscribers: Boolean): Completable = server.deviceList()
-            .doOnSubscribe { characteristic.value = bytes }
+    override fun setValue(bytes: ByteArray, notifySubscribers: Boolean, ignoreMtu: Boolean): Completable = server.deviceList()
             .first(emptyList())
+            .flatMapObservable { devices ->
+                Single.fromCallable {
+                    if (ignoreMtu) {
+                        bytes.size
+                    } else {
+                        devices.minBy { device -> device.mtu }?.mtu ?: RxBleDevice.DEFAULT_MTU
+                    }
+                }
+                        .flatMapObservable { minMtu ->
+                            Observable.fromIterable(bytes.asIterable())
+                                    .buffer(minMtu)
+                        }
+                        .map { it.toByteArray() }
+                        .doOnNext { characteristic.value = bytes }
+                        .map { devices }
+            }
             .filter { notifySubscribers }
-            .flatMapObservable { Observable.fromIterable(it) }
+            .flatMap { Observable.fromIterable(it) }
             .filter { it.isNotificationSubscriptionActive(this) }
             .flatMapCompletable {
                 server.notifyCharacteristicChanged(it, this)

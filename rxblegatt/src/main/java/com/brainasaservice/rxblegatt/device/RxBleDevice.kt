@@ -9,6 +9,11 @@ import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorWriteRequest
 import io.reactivex.Observable
 
 interface RxBleDevice {
+    /**
+     * Maximum Transmission Unit - Maximum length of an ATT packet.
+     */
+    var mtu: Int
+
     val device: BluetoothDevice
 
     fun observeConnection(): Observable<RxBleDevice.Connection>
@@ -24,8 +29,6 @@ interface RxBleDevice {
     fun observeDescriptorReadRequests(): Observable<RxBleDescriptorReadRequest>
 
     fun observeNotificationSent(): Observable<RxBleDevice>
-
-    fun setMtu(mtu: Int)
 
     fun setNotificationSubscriptionActive(characteristic: RxBleCharacteristic)
 
@@ -65,5 +68,10 @@ interface RxBleDevice {
     enum class Connection {
         CONNECTED,
         DISCONNECTED
+    }
+
+    companion object {
+        const val MTU_RESERVED_BYTES = 3
+        const val DEFAULT_MTU = 21
     }
 }

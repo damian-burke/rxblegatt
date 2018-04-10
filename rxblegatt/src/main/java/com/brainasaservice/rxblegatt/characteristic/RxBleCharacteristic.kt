@@ -18,7 +18,7 @@ interface RxBleCharacteristic {
 
     val properties: Int
 
-    fun setValue(bytes: ByteArray, notifySubscribers: Boolean = true): Completable
+    fun setValue(bytes: ByteArray, notifySubscribers: Boolean = true, ignoreMtu: Boolean = false): Completable
 
     fun addDescriptor(descriptor: RxBleDescriptor): RxBleDescriptor
 
