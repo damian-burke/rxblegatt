@@ -12,6 +12,11 @@ import io.reactivex.subjects.PublishSubject
 import java.util.UUID
 
 class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
+    override var mtu: Int = RxBleDevice.DEFAULT_MTU
+        set(value) {
+            field = value - RxBleDevice.MTU_RESERVED_BYTES
+            statusSubject.onNext(RxBleDevice.Status.OnMtuChanged(field))
+        }
 
     private val statusSubject: PublishSubject<RxBleDevice.Status> = PublishSubject.create()
 
@@ -24,8 +29,6 @@ class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
     private val descriptorWriteRequestSubject: PublishSubject<RxBleDescriptorWriteRequest> = PublishSubject.create()
 
     private val descriptorReadRequestSubject: PublishSubject<RxBleDescriptorReadRequest> = PublishSubject.create()
-
-    private var mtu: Int? = null
 
     private var connected: Boolean = false
 
@@ -71,11 +74,6 @@ class RxBleDeviceImpl(override val device: BluetoothDevice) : RxBleDevice {
     override fun setNotificationSubscriptionInactive(characteristic: RxBleCharacteristic) {
         descriptorNotificationSet.remove(characteristic.uuid)
         statusSubject.onNext(RxBleDevice.Status.OnNotificationSubscriptionInactive(characteristic))
-    }
-
-    override fun setMtu(mtu: Int) {
-        this.mtu = mtu
-        statusSubject.onNext(RxBleDevice.Status.OnMtuChanged(mtu))
     }
 
     override fun observeStatus(): Observable<RxBleDevice.Status> = statusSubject

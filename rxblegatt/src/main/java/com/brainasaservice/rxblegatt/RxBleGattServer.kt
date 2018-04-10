@@ -140,7 +140,7 @@ class RxBleGattServer(private val context: Context) {
         override fun onMtuChanged(device: BluetoothDevice?, mtu: Int) {
             super.onMtuChanged(device, mtu)
             device?.let {
-                deviceMap[it.address]?.setMtu(mtu)
+                deviceMap[it.address]?.mtu = mtu
             }
         }
 
