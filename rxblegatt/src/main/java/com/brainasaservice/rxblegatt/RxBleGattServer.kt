@@ -82,8 +82,8 @@ class RxBleGattServer(private val context: Context) {
                 val charUuid = it.characteristic.uuid
                 val descUuid = it.uuid
 
-                val rxDescriptor = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)?.descriptorMap?.get(descUuid)
-                val rxCharacteristic = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)
+                val rxDescriptor = serviceMap[serviceUuid]?.getCharacteristic(charUuid)?.getDescriptor(descUuid)
+                val rxCharacteristic = serviceMap[serviceUuid]?.getCharacteristic(charUuid)
                 val rxDevice = deviceMap[device?.address]
 
                 if (rxDevice != null && rxCharacteristic != null && rxDescriptor != null) {
@@ -104,8 +104,8 @@ class RxBleGattServer(private val context: Context) {
                 val charUuid = it.characteristic.uuid
                 val descUuid = it.uuid
 
-                val rxDescriptor = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)?.descriptorMap?.get(descUuid)
-                val rxCharacteristic = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)
+                val rxDescriptor = serviceMap[serviceUuid]?.getCharacteristic(charUuid)?.getDescriptor(descUuid)
+                val rxCharacteristic = serviceMap[serviceUuid]?.getCharacteristic(charUuid)
                 val rxDevice = deviceMap[device?.address]
 
                 if (rxDevice != null && rxCharacteristic != null && rxDescriptor != null) {
@@ -158,7 +158,7 @@ class RxBleGattServer(private val context: Context) {
                 val serviceUuid = it.service.uuid
                 val charUuid = it.uuid
 
-                val rxCharacteristic = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)
+                val rxCharacteristic = serviceMap[serviceUuid]?.getCharacteristic(charUuid)
                 val rxDevice = deviceMap[device?.address]
 
                 if (rxCharacteristic != null && rxDevice != null) {
@@ -189,7 +189,7 @@ class RxBleGattServer(private val context: Context) {
                 val serviceUuid = it.service.uuid
                 val charUuid = it.uuid
 
-                val rxCharacteristic = serviceMap[serviceUuid]?.characteristicMap?.get(charUuid)
+                val rxCharacteristic = serviceMap[serviceUuid]?.getCharacteristic(charUuid)
                 val rxDevice = deviceMap[device?.address]
 
                 if (rxCharacteristic != null && rxDevice != null) {
