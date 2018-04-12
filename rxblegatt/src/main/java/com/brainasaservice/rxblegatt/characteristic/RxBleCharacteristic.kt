@@ -8,8 +8,6 @@ import io.reactivex.Observable
 import java.util.UUID
 
 interface RxBleCharacteristic {
-    val descriptorMap: HashMap<UUID, RxBleDescriptor>
-
     val characteristic: BluetoothGattCharacteristic
 
     val uuid: UUID
@@ -17,6 +15,8 @@ interface RxBleCharacteristic {
     val permissions: Int
 
     val properties: Int
+
+    fun getDescriptor(uuid: UUID): RxBleDescriptor?
 
     fun setValue(bytes: ByteArray, notifySubscribers: Boolean = true, ignoreMtu: Boolean = false): Completable
 
