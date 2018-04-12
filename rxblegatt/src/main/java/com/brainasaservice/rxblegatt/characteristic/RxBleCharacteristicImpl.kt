@@ -26,15 +26,17 @@ class RxBleCharacteristicImpl(
 
     private val readRequestSubject: PublishSubject<RxBleCharacteristicReadRequest> = PublishSubject.create()
 
+    private val descriptorMap: HashMap<UUID, RxBleDescriptor> = hashMapOf()
+
     override val characteristic: BluetoothGattCharacteristic = BluetoothGattCharacteristic(
             uuid,
             properties,
             permissions
     )
 
-    override fun observeWriteRequests(): Observable<RxBleCharacteristicWriteRequest> = writeRequestSubject
+    override fun getDescriptor(uuid: UUID): RxBleDescriptor? = descriptorMap[uuid]
 
-    override val descriptorMap: HashMap<UUID, RxBleDescriptor> = hashMapOf()
+    override fun observeWriteRequests(): Observable<RxBleCharacteristicWriteRequest> = writeRequestSubject
 
     override fun onWriteRequest(request: RxBleCharacteristicWriteRequest) {
         writeRequestSubject.onNext(request)
