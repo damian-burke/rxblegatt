@@ -33,6 +33,11 @@ class RxBleServiceImpl(
         isAdded = true
     }
 
+    override fun stop() {
+        characteristicSubject.onComplete()
+        characteristicMap.values.onEach { it.stop() }
+    }
+
     override fun addCharacteristic(
             uuid: UUID,
             property: Int,

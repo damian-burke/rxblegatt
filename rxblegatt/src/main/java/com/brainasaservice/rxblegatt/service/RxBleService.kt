@@ -28,6 +28,8 @@ interface RxBleService {
 
     fun onServiceAdded()
 
+    fun stop()
+
     enum class Type(val value: Int) {
         PRIMARY(BluetoothGattService.SERVICE_TYPE_PRIMARY),
         SECONDARY(BluetoothGattService.SERVICE_TYPE_SECONDARY)

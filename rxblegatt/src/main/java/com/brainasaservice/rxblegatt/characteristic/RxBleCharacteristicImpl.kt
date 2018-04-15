@@ -42,6 +42,13 @@ class RxBleCharacteristicImpl(
         writeRequestSubject.onNext(request)
     }
 
+    override fun stop() {
+        subscribedDevices.clear()
+        descriptorMap.values.onEach { it.stop() }
+        writeRequestSubject.onComplete()
+        readRequestSubject.onComplete()
+    }
+
     override fun setValue(bytes: ByteArray, notifySubscribers: Boolean, ignoreMtu: Boolean): Completable = server.deviceList()
             .first(emptyList())
             .flatMapObservable { devices ->

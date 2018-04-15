@@ -10,12 +10,6 @@ import io.reactivex.Observable
 import io.reactivex.subjects.PublishSubject
 
 class RxBleAdvertiserImpl(val bluetoothAdapter: BluetoothAdapter) : RxBleAdvertiser {
-    override var settings: AdvertiseSettings? = null
-
-    override var data: AdvertiseData? = null
-
-    override var response: AdvertiseData? = null
-
     private val statusSubject: PublishSubject<Status> = PublishSubject.create()
 
     private var callback: AdvertiseCallback = object : AdvertiseCallback() {
@@ -29,6 +23,12 @@ class RxBleAdvertiserImpl(val bluetoothAdapter: BluetoothAdapter) : RxBleAdverti
             statusSubject.onNext(Status.Active)
         }
     }
+
+    override var settings: AdvertiseSettings? = null
+
+    override var data: AdvertiseData? = null
+
+    override var response: AdvertiseData? = null
 
     override fun start(): Completable = Completable.fromAction {
         if (settings == null) {
@@ -49,6 +49,7 @@ class RxBleAdvertiserImpl(val bluetoothAdapter: BluetoothAdapter) : RxBleAdverti
     override fun stop(): Completable = Completable.fromAction {
         bluetoothAdapter.bluetoothLeAdvertiser.stopAdvertising(callback)
         statusSubject.onNext(Status.Inactive)
+        statusSubject.onComplete()
     }
 
     override fun status(): Observable<Status> = statusSubject

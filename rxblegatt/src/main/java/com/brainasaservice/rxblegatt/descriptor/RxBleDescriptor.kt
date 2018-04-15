@@ -17,6 +17,8 @@ interface RxBleDescriptor {
 
     fun observeReadRequests(): Observable<RxBleDescriptorReadRequest>
 
+    fun stop()
+
     interface Builder {
         fun setUuid(uuid: UUID): Builder
 

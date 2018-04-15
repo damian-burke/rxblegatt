@@ -36,6 +36,8 @@ interface RxBleCharacteristic {
 
     fun observeWriteRequests(): Observable<RxBleCharacteristicWriteRequest>
 
+    fun stop()
+
     interface Builder {
         fun setUuid(uuid: UUID): Builder
 

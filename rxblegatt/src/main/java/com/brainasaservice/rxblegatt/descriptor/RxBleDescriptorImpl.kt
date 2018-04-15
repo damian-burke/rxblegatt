@@ -24,6 +24,11 @@ open class RxBleDescriptorImpl(
         descriptorReadRequestSubject.onNext(request)
     }
 
+    override fun stop() {
+        descriptorReadRequestSubject.onComplete()
+        descriptorWriteRequestSubject.onComplete()
+    }
+
     override fun onWriteRequest(request: RxBleDescriptorWriteRequest) {
         descriptorWriteRequestSubject.onNext(request)
     }

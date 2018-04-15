@@ -256,6 +256,12 @@ class RxBleGattServer(private val context: Context) {
             throw Error.ServerNotOpenException
         }
 
+        serviceMap.values.onEach { it.stop() }
+        statusSubject.onNext(RxBleGattServerStatus.Closed)
+        statusSubject.onComplete()
+        deviceSubject.onComplete()
+        deviceListSubject.onComplete()
+
         advertiser.stop().blockingAwait()
         server?.close()
         server = null
