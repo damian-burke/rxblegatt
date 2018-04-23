@@ -5,6 +5,7 @@ import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
 import io.reactivex.Completable
 import io.reactivex.Observable
+import io.reactivex.Scheduler
 import java.util.UUID
 
 interface RxBleCharacteristic {
@@ -15,6 +16,8 @@ interface RxBleCharacteristic {
     val permissions: Int
 
     val properties: Int
+
+    val scheduler: Scheduler
 
     fun getDescriptor(uuid: UUID): RxBleDescriptor?
 
@@ -42,6 +45,8 @@ interface RxBleCharacteristic {
         fun setUuid(uuid: UUID): Builder
 
         fun setPermissions(permissions: Int): Builder
+
+        fun setScheduler(scheduler: Scheduler): Builder
 
         fun setProperties(properties: Int): Builder
 
