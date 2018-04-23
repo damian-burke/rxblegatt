@@ -6,9 +6,12 @@ import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptor
 import com.brainasaservice.rxblegatt.descriptor.RxBleDescriptorImpl
 import com.brainasaservice.rxblegatt.descriptor.RxBleNotificationDescriptor
 import com.brainasaservice.rxblegatt.device.RxBleDevice
+import com.brainasaservice.rxblegatt.util.MainThreadExecutor
 import io.reactivex.Completable
 import io.reactivex.Observable
+import io.reactivex.Scheduler
 import io.reactivex.Single
+import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import java.security.InvalidParameterException
 import java.util.UUID
@@ -17,10 +20,11 @@ class RxBleCharacteristicImpl(
         override val uuid: UUID,
         override val properties: Int,
         override val permissions: Int,
+        override val scheduler: Scheduler = Schedulers.from(MainThreadExecutor()),
         private val server: RxBleGattServer
 ) : RxBleCharacteristic {
 
-    private val subscribedDevices: List<RxBleDevice> = mutableListOf()
+    private val subscribedDevices: MutableList<RxBleDevice> = mutableListOf()
 
     private val writeRequestSubject: PublishSubject<RxBleCharacteristicWriteRequest> = PublishSubject.create()
 
@@ -50,6 +54,7 @@ class RxBleCharacteristicImpl(
     }
 
     override fun setValue(bytes: ByteArray, notifySubscribers: Boolean, ignoreMtu: Boolean): Completable = server.deviceList()
+            .doOnSubscribe { println("*** setValue(bytes=${bytes.joinToString(", ")}.subscribe()") }
             .first(emptyList())
             .flatMapObservable { devices ->
                 Single.fromCallable {
@@ -73,6 +78,7 @@ class RxBleCharacteristicImpl(
             .flatMapCompletable {
                 server.notifyCharacteristicChanged(it, this)
             }
+            .subscribeOn(scheduler)
 
     override fun onReadRequest(request: RxBleCharacteristicReadRequest) {
         readRequestSubject.onNext(request)
@@ -114,7 +120,13 @@ class RxBleCharacteristicImpl(
 
         private var permissions: Int? = null
 
+        private var scheduler: Scheduler = Schedulers.from(MainThreadExecutor())
+
         private val descriptors = mutableListOf<RxBleDescriptor>()
+
+        override fun setScheduler(scheduler: Scheduler): RxBleCharacteristic.Builder = this.apply {
+            this.scheduler = scheduler
+        }
 
         override fun setUuid(uuid: UUID): RxBleCharacteristic.Builder = this.apply {
             this.uuid = uuid
@@ -158,6 +170,7 @@ class RxBleCharacteristicImpl(
                     uuid!!,
                     properties!!,
                     permissions!!,
+                    scheduler,
                     server
             ).apply {
                 descriptors.onEach {
