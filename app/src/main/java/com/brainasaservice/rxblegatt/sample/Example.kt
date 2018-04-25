@@ -8,6 +8,7 @@ import android.bluetooth.le.AdvertiseSettings
 import android.content.Context
 import com.brainasaservice.rxblegatt.RxBleGattServer
 import com.brainasaservice.rxblegatt.RxBleResponse
+import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristic
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicWriteRequest
 import com.brainasaservice.rxblegatt.characteristic.parseWith
 import com.brainasaservice.rxblegatt.characteristic.respondIfRequired
@@ -93,7 +94,33 @@ fun x(context: Context) {
     /**
      * Add a service to the server.
      */
-    val service = server.addService(UUID.randomUUID(), RxBleService.Type.PRIMARY)
+    var char: RxBleCharacteristic
+
+    val service = server.addService(UUID.randomUUID(), RxBleService.Type.PRIMARY) {
+        addCharacteristic {
+            setUuid(UUID.randomUUID())
+            setProperties(BluetoothGattCharacteristic.PROPERTY_BROADCAST)
+            setPermissions(BluetoothGattCharacteristic.PERMISSION_WRITE)
+
+            addDescriptor {
+                setUuid(UUID.randomUUID())
+                setPermissions(BluetoothGattDescriptor.PERMISSION_READ)
+            }
+
+            enableNotificationSubscription()
+        }.also { char = it }
+    }
+
+    char.observeWriteRequests()
+            .respondIfRequired {
+                RxBleResponse(it.device, it.requestId, BluetoothGatt.GATT_SUCCESS, it.offset, it.value)
+            }
+            .parseWith(GogoParser())
+            .subscribe({ message ->
+
+            }, {
+
+            })
 
     val veryGoodCharacteristicUuid = UUID.randomUUID()
 
@@ -172,6 +199,15 @@ fun x(context: Context) {
             .subscribe({ msg ->
             }, { error ->
                 println("Something went wrong... $error")
+            })
+
+    val charMessageDisposable = characteristic.observeWriteRequests()
+            .respondIfRequired { RxBleResponse(it.device, it.requestId, BluetoothGatt.GATT_SUCCESS, it.offset, it.value) }
+            .parseWith(parser)
+            .subscribe({ msg ->
+                println("Characteristic received message ${msg.message}")
+            }, {
+                println("Something went wrong... $it")
             })
 
 }
