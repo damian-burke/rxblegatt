@@ -6,13 +6,14 @@ import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristic
 import com.brainasaservice.rxblegatt.characteristic.RxBleCharacteristicImpl
 import io.reactivex.Observable
 import io.reactivex.subjects.BehaviorSubject
+import timber.log.Timber
 import java.util.HashMap
 import java.util.UUID
 
 class RxBleServiceImpl(
-        val uuid: UUID,
-        type: RxBleService.Type = RxBleService.Type.PRIMARY,
-        private val server: RxBleGattServer
+    val uuid: UUID,
+    type: RxBleService.Type = RxBleService.Type.PRIMARY,
+    private val server: RxBleGattServer
 ) : RxBleService {
 
     private var characteristicSubject: BehaviorSubject<List<RxBleCharacteristic>> = BehaviorSubject.create()
@@ -39,11 +40,15 @@ class RxBleServiceImpl(
     }
 
     override fun addCharacteristic(
-            uuid: UUID,
-            property: Int,
-            permission: Int
+        uuid: UUID,
+        property: Int,
+        permission: Int
     ): RxBleCharacteristic {
-        val char = RxBleCharacteristicImpl(uuid, property, permission, server)
+        val char = RxBleCharacteristicImpl(
+            uuid = uuid,
+            properties = property,
+            permissions = permission,
+            server = server)
         return addCharacteristic(char)
     }
 
@@ -53,6 +58,7 @@ class RxBleServiceImpl(
     }
 
     override fun addCharacteristic(characteristic: RxBleCharacteristic): RxBleCharacteristic {
+        Timber.v("addCharacteristic(characteristic=$characteristic)")
         characteristicMap[characteristic.uuid] = characteristic
         service.addCharacteristic(characteristic.characteristic)
         return characteristic

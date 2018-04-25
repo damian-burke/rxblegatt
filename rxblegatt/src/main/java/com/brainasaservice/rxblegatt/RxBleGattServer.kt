@@ -27,6 +27,7 @@ import io.reactivex.Observable
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import io.reactivex.subjects.ReplaySubject
+import timber.log.Timber
 import java.util.UUID
 
 class RxBleGattServer(private val context: Context) {
@@ -96,6 +97,7 @@ class RxBleGattServer(private val context: Context) {
 
         override fun onDescriptorWriteRequest(device: BluetoothDevice?, requestId: Int, descriptor: BluetoothGattDescriptor?, preparedWrite: Boolean, responseNeeded: Boolean, offset: Int, value: ByteArray?) {
             super.onDescriptorWriteRequest(device, requestId, descriptor, preparedWrite, responseNeeded, offset, value)
+            Timber.v("onDescriptorWriteRequest(device=$device, descriptor=$descriptor)")
             /**
              * TODO: update RxBleDescriptor
              */
@@ -145,10 +147,10 @@ class RxBleGattServer(private val context: Context) {
         }
 
         override fun onCharacteristicReadRequest(
-                device: BluetoothDevice?,
-                requestId: Int,
-                offset: Int,
-                characteristic: BluetoothGattCharacteristic?
+            device: BluetoothDevice?,
+            requestId: Int,
+            offset: Int,
+            characteristic: BluetoothGattCharacteristic?
         ) {
             super.onCharacteristicReadRequest(device, requestId, offset, characteristic)
             /**
@@ -163,11 +165,11 @@ class RxBleGattServer(private val context: Context) {
 
                 if (rxCharacteristic != null && rxDevice != null) {
                     val request = RxBleCharacteristicReadRequest(
-                            this@RxBleGattServer,
-                            rxDevice,
-                            rxCharacteristic,
-                            requestId,
-                            offset
+                        this@RxBleGattServer,
+                        rxDevice,
+                        rxCharacteristic,
+                        requestId,
+                        offset
                     )
                     rxCharacteristic.onReadRequest(request)
                     rxDevice.onCharacteristicReadRequest(request)
@@ -176,13 +178,13 @@ class RxBleGattServer(private val context: Context) {
         }
 
         override fun onCharacteristicWriteRequest(
-                device: BluetoothDevice?,
-                requestId: Int,
-                characteristic: BluetoothGattCharacteristic?,
-                preparedWrite: Boolean,
-                responseNeeded: Boolean,
-                offset: Int,
-                value: ByteArray?
+            device: BluetoothDevice?,
+            requestId: Int,
+            characteristic: BluetoothGattCharacteristic?,
+            preparedWrite: Boolean,
+            responseNeeded: Boolean,
+            offset: Int,
+            value: ByteArray?
         ) {
             super.onCharacteristicWriteRequest(device, requestId, characteristic, preparedWrite, responseNeeded, offset, value)
             characteristic?.let {
@@ -194,14 +196,14 @@ class RxBleGattServer(private val context: Context) {
 
                 if (rxCharacteristic != null && rxDevice != null) {
                     val request = RxBleCharacteristicWriteRequest(
-                            this@RxBleGattServer,
-                            rxDevice,
-                            rxCharacteristic,
-                            requestId,
-                            preparedWrite,
-                            responseNeeded,
-                            offset,
-                            value
+                        this@RxBleGattServer,
+                        rxDevice,
+                        rxCharacteristic,
+                        requestId,
+                        preparedWrite,
+                        responseNeeded,
+                        offset,
+                        value
                     )
                     rxCharacteristic.onWriteRequest(request)
                     rxDevice.onCharacteristicWriteRequest(request)
@@ -223,11 +225,11 @@ class RxBleGattServer(private val context: Context) {
         }
 
         val result = server?.sendResponse(
-                response.device.device,
-                response.requestId,
-                response.status,
-                response.offset,
-                response.value
+            response.device.device,
+            response.requestId,
+            response.status,
+            response.offset,
+            response.value
         ) ?: false
 
         if (!result) {
@@ -248,6 +250,7 @@ class RxBleGattServer(private val context: Context) {
             throw Error.NotSupportedException
         }
 
+        Timber.v("start()")
         server = bluetoothManager.openGattServer(context, serverCallback)
     }
 
@@ -273,11 +276,15 @@ class RxBleGattServer(private val context: Context) {
 
     fun deviceList(): Observable<List<RxBleDevice>> = deviceListSubject
 
-    fun addService(uuid: UUID, type: RxBleService.Type): RxBleService {
-        val service = RxBleServiceImpl(uuid, type, this)
-        serviceMap[uuid] = service
-        server?.addService(service.service)
-        return service
+    fun addService(uuid: UUID, type: RxBleService.Type, block: (RxBleService.() -> Unit)? = null): RxBleService {
+        return RxBleServiceImpl(uuid, type, this).apply {
+            if (block != null) {
+                this.block()
+            }
+        }.also {
+            serviceMap[uuid] = it
+            server?.addService(it.service)
+        }
     }
 
     /**
@@ -287,9 +294,9 @@ class RxBleGattServer(private val context: Context) {
      */
     fun notifyCharacteristicChanged(device: RxBleDevice, characteristic: RxBleCharacteristic): Completable = Completable.fromAction {
         val isSent = server?.notifyCharacteristicChanged(
-                device.device,
-                characteristic.characteristic,
-                false
+            device.device,
+            characteristic.characteristic,
+            false
         ) ?: false
 
         if (!isSent) {
@@ -299,9 +306,9 @@ class RxBleGattServer(private val context: Context) {
             throw Exception()
         }
     }.andThen(
-            device.observeNotificationSent()
-                    .firstOrError()
-                    .toCompletable()
+        device.observeNotificationSent()
+            .firstOrError()
+            .toCompletable()
     )
 
     private fun handleDeviceConnected(device: BluetoothDevice) {

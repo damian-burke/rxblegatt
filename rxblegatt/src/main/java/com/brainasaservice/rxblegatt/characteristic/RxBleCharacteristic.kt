@@ -29,8 +29,6 @@ interface RxBleCharacteristic {
 
     fun enableNotificationSubscription()
 
-    fun disableNotificationSubscription()
-
     fun hasNotificationSubscriptionEnabled(): Boolean
 
     fun onWriteRequest(request: RxBleCharacteristicWriteRequest)
