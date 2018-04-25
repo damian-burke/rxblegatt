@@ -13,6 +13,7 @@ import io.reactivex.Scheduler
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+import timber.log.Timber
 import java.security.InvalidParameterException
 import java.util.UUID
 
@@ -85,24 +86,16 @@ class RxBleCharacteristicImpl(
     }
 
     override fun enableNotificationSubscription() {
-        val descriptor = RxBleNotificationDescriptor()
-        descriptorMap[descriptor.uuid] = descriptor
+        Timber.v("enableNotificationSubscription()")
+        addDescriptor(RxBleNotificationDescriptor())
     }
 
     override fun hasNotificationSubscriptionEnabled() = descriptorMap.any {
         it.value is RxBleNotificationDescriptor
     }
 
-    /**
-     * TODO: only possible until descriptor has been added to characteristic
-     */
-    override fun disableNotificationSubscription() {
-        descriptorMap.filter { it.value is RxBleNotificationDescriptor }.onEach {
-            descriptorMap.remove(it.key)
-        }
-    }
-
     override fun addDescriptor(descriptor: RxBleDescriptor): RxBleDescriptor {
+        Timber.v("addDescriptor(${descriptor.uuid}) to characteristic ${this.uuid}")
         descriptorMap[descriptor.uuid] = descriptor
         characteristic.addDescriptor(descriptor.descriptor)
         return descriptor
