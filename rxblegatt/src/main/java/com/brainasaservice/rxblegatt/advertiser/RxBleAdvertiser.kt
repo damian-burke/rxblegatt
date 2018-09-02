@@ -3,6 +3,8 @@ package com.brainasaservice.rxblegatt.advertiser
 import android.bluetooth.le.AdvertiseData
 import android.bluetooth.le.AdvertiseSettings
 import android.bluetooth.le.AdvertisingSet
+import android.bluetooth.le.AdvertisingSetParameters
+import android.bluetooth.le.PeriodicAdvertisingParameters
 import io.reactivex.Completable
 import io.reactivex.Observable
 
@@ -10,9 +12,17 @@ interface RxBleAdvertiser {
 
     var data: AdvertiseData?
 
+    var response: AdvertiseData?
+
     var settings: AdvertiseSettings?
 
-    var response: AdvertiseData?
+    var parameters: AdvertisingSetParameters?
+
+    var periodicAdvertisingParameters: PeriodicAdvertisingParameters?
+
+    var periodicData: AdvertiseData?
+
+    var enableAdvertisingSet: Boolean
 
     fun start(): Completable
 
@@ -35,6 +45,7 @@ interface RxBleAdvertiser {
         object UnsupportedException : Error()
         object InternalErrorException : Error()
         object TooManyAdvertisersException : Error()
+        object MinSdkRequirementNotFulfilledException : Error()
 
         companion object {
             fun fromCode(code: Int): Error = when (code) {
