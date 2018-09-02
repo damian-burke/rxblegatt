@@ -94,7 +94,7 @@ fun x(context: Context) {
     /**
      * Add a service to the server.
      */
-    var char: RxBleCharacteristic
+    var char: RxBleCharacteristic? = null
 
     val service = server.addService(UUID.randomUUID(), RxBleService.Type.PRIMARY) {
         addCharacteristic {
@@ -111,7 +111,7 @@ fun x(context: Context) {
         }.also { char = it }
     }
 
-    char.observeWriteRequests()
+    char!!.observeWriteRequests()
             .respondIfRequired {
                 RxBleResponse(it.device, it.requestId, BluetoothGatt.GATT_SUCCESS, it.offset, it.value)
             }
