@@ -1,4 +1,4 @@
-# RxBleGatt
+# RxBleGatt (Work In Progress)
 
 Reactive Bluetooth Low Energy peripheral mode on Android.
 
