@@ -94,7 +94,7 @@ val advertising = server.advertiser.apply {
             addDescriptor {
                 setUuid(UUID.randomUUID())
                 setPermissions(BluetoothGattDescriptor.PERMISSION_READ)
-            } []()
+            } 
         }
     }
 ```
